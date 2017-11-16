@@ -712,7 +712,7 @@
   var fetchedList = {}
   var callbackList = {}
 
-  var STATUS = Module.STATUS = {
+  var STATUS = Module.STATUS = { //模块加载的一些状态码
     // 1 - The `module.uri` is being fetched
     FETCHING: 1,
     // 2 - The meta data has been saved to cachedMods
