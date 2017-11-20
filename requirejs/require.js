@@ -33,7 +33,7 @@ var requirejs, require, define;
 		cfg = {},
 		globalDefQueue = [],
 		useInteractive = false;
-
+	
 	//Could match something like ')//comment', do not lose the prefix to comment.
 	function commentReplace(match, singlePrefix) {
 		return singlePrefix || '';
@@ -218,8 +218,9 @@ var requirejs, require, define;
 			bundlesMap = {},
 			requireCounter = 1,
 			unnormalizedCounter = 1;
-
+		
 		/**
+		 * 去除无用的 . 和 .. 路径
 		 * Trims the . and .. from an array of path segments.
 		 * It will keep a leading path segment if a .. will become
 		 * the first path segment, to help with module name lookups,
@@ -379,9 +380,8 @@ var requirejs, require, define;
 			}
 		}
 
-		//Turns a plugin!resource to [plugin, resource]
-		//with the plugin being undefined if the name
-		//did not have a plugin prefix.
+		//将plugin!resource转化为[plugin, resource]
+		//如果没有使用插件，plugin为undefined
 		function splitPrefix(name) {
 			var prefix,
 				index = name ? name.indexOf('!') : -1;
@@ -393,9 +393,9 @@ var requirejs, require, define;
 		}
 
 		/**
-		 * Creates a module mapping that includes plugin prefix, module
-		 * name, and path. If parentModuleMap is provided it will
-		 * also normalize the name via require.normalize()
+		 * 创建一个模块映射，包括了插件前缀、模块名、路径
+		 * 如果提供了parentModuleMap，会使用require.normalize()
+		 * 标准化名称
 		 *
 		 * @param {String} name the module name
 		 * @param {String} [parentModuleMap] parent module map
@@ -412,11 +412,10 @@ var requirejs, require, define;
 				prefix = null,
 				parentName = parentModuleMap ? parentModuleMap.name : null,
 				originalName = name,
-				isDefine = true,
+				isDefine = true, //是否是define的模块
 				normalizedName = '';
 
-			//If no name, then it means it is a require call, generate an
-			//internal name.
+			//如果没有模块名，表示是require调用，使用一个内部名
 			if (!name) {
 				isDefine = false;
 				name = '_@r' + (requireCounter += 1);
@@ -426,9 +425,9 @@ var requirejs, require, define;
 			prefix = nameParts[0];
 			name = nameParts[1];
 
-			if (prefix) {
+			if (prefix) { //如果有插件前缀
 				prefix = normalize(prefix, parentName, applyMap);
-				pluginModule = getOwn(defined, prefix);
+				pluginModule = getOwn(defined, prefix); //获取插件
 			}
 
 			//Account for relative paths if there is a base name.
@@ -439,7 +438,7 @@ var requirejs, require, define;
 					} else if (pluginModule && pluginModule.normalize) {
 						//Plugin is loaded, use its normalize method.
 						normalizedName = pluginModule.normalize(name, function (name) {
-							return normalize(name, parentName, applyMap);
+							return normalize(name, parentName, applyMap); //相对路径转为绝对路径
 						});
 					} else {
 						// If nested plugin references, then do not try to
@@ -454,13 +453,13 @@ var requirejs, require, define;
 							name;
 					}
 				} else {
-					//A regular module.
+					//一个常规模块，进行名称的标准化.
 					normalizedName = normalize(name, parentName, applyMap);
 
 					//Normalized name may be a plugin ID due to map config
 					//application in normalize. The map config values must
 					//already be normalized, so do not need to redo that part.
-					nameParts = splitPrefix(normalizedName);
+					nameParts = splitPrefix(normalizedName); //提取插件
 					prefix = nameParts[0];
 					normalizedName = nameParts[1];
 					isNormalized = true;
@@ -497,7 +496,7 @@ var requirejs, require, define;
 			if (!mod) { //对未注册模块，添加到模块注册器中
 				mod = registry[id] = new context.Module(depMap);
 			}
-			console.log(mod);
+
 			return mod;
 		}
 		//自定义事件绑定
@@ -728,7 +727,7 @@ var requirejs, require, define;
 			this.depMatched = [];
 			this.pluginMaps = {};
 			this.depCount = 0;
-
+			console.log(map);
 			/* this.exports this.factory
 			   this.depMaps = [],
 			   this.enabled, this.fetched
@@ -738,7 +737,7 @@ var requirejs, require, define;
 		Module.prototype = {
 			init: function (depMaps, factory, errback, options) { //模块加载时的入口
 				options = options || {};
-
+				
 				//Do not do more inits if already done. Can happen if there
 				//are multiple define calls for the same module. That is not
 				//a normal, common case, but it is also not unexpected.
@@ -838,7 +837,7 @@ var requirejs, require, define;
 				if (!this.enabled || this.enabling) {
 					return;
 				}
-
+				
 				var err, cjsModule,
 					id = this.map.id,
 					depExports = this.depExports,
@@ -846,9 +845,9 @@ var requirejs, require, define;
 					factory = this.factory;
 
 				if (!this.inited) {
-					// Only fetch if not already in the defQueue.
+					// 仅仅加载未被添加到defQueueMap中的依赖
 					if (!hasProp(context.defQueueMap, id)) {
-						this.fetch();
+						this.fetch(); //调用fetch() -> load() -> req.load()
 					}
 				} else if (this.error) {
 					this.emit('error', this.error);
@@ -908,7 +907,7 @@ var requirejs, require, define;
 						if (this.map.isDefine && !this.ignore) {
 							defined[id] = exports;
 
-							if (req.onResourceLoad) {
+							if (req.onResourceLoad) { 
 								var resLoadMaps = [];
 								each(this.depMaps, function (depMap) {
 									resLoadMaps.push(depMap.normalizedMap || depMap);
@@ -1104,7 +1103,7 @@ var requirejs, require, define;
 				//with the depCount still being zero.
 				this.enabling = true;
 
-				//Enable each dependency
+				//enable每一个依赖
 				each(this.depMaps, bind(this, function (depMap, i) {
 					var id, mod, handler;
 
@@ -1116,7 +1115,7 @@ var requirejs, require, define;
 							false,
 							!this.skipMap);
 						this.depMaps[i] = depMap;
-
+						
 						handler = getOwn(handlers, depMap.id);
 
 						if (handler) {
@@ -1193,7 +1192,7 @@ var requirejs, require, define;
 		};
 
 		function callGetModule(args) {
-			//Skip modules already defined.
+			//跳过已经加载的模块
 			if (!hasProp(defined, args[0])) {
 				getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]);
 			}
@@ -1239,7 +1238,7 @@ var requirejs, require, define;
 		function intakeDefines() { //获取并加载define方法添加的模块
 			var args;
 
-			//Any defined modules in the global queue, intake them now.
+			//取出所有define方法定义的模块（放在globalqueue中）
 			takeGlobalQueue();
 
 			//Make sure any remaining defQueue items get properly processed.
@@ -1378,9 +1377,8 @@ var requirejs, require, define;
 					}
 				});
 
-				//If a deps array or a config callback is specified, then call
-				//require with those args. This is useful when require is defined as a
-				//config object before require.js is loaded.
+				//如果配置项里指定了deps或者callback, 则调用require方法
+            	//如果实在requirejs加载之前，使用require定义对象作为配置，这很有用
 				if (cfg.deps || cfg.callback) {
 					context.require(cfg.deps || [], cfg.callback);
 				}
@@ -1401,7 +1399,6 @@ var requirejs, require, define;
 				options = options || {};
 
 				function localRequire(deps, callback, errback) { //真正的require方法
-					console.log(arguments);
 					var id, map, requireMod;
 
 					if (options.enableBuildCallback && callback && isFunction(callback)) {
@@ -1444,7 +1441,7 @@ var requirejs, require, define;
 					//Grab defines waiting in the global queue.
 					intakeDefines();
 
-					//Mark all the dependencies as needing to be loaded.
+					//通过setTimeout的方式加载依赖，放入下一个队列，保证加载顺序
 					context.nextTick(function () {
 						//Some defines could have been added since the
 						//require call, collect them.
@@ -1761,7 +1758,6 @@ var requirejs, require, define;
 	 * name for minification/local scope use.
 	 */
 	req = requirejs = function (deps, callback, errback, optional) {
-		console.log(deps);
 		//Find the right context, use default
 		var context, config,
 			contextName = defContextName;
@@ -1783,7 +1779,7 @@ var requirejs, require, define;
 		if (config && config.context) {
 			contextName = config.context;
 		}
-
+		
 		context = getOwn(contexts, contextName);  //获取默认环境
 		if (!context) {
 			context = contexts[contextName] = req.s.newContext(contextName); //创建一个名为'_'的环境名
@@ -2004,7 +2000,7 @@ var requirejs, require, define;
 
 	//Look for a data-main script attribute, which could also adjust the baseUrl.
 	if (isBrowser && !cfg.skipDataMain) {  //如果是浏览器，获取script的data-main属性，作为模块的主入口文件
-		//Figure out baseUrl. Get it from the script tag with require.js in it.
+		//从引入requirejs的script标签中取出baseUrl。
 		eachReverse(scripts(), function (script) {  //遍历所有的script标签
 			//Set the 'head' where we can append children by
 			//using the script's parent.
@@ -2017,7 +2013,7 @@ var requirejs, require, define;
 			//baseUrl, if it is not already set.
 			dataMain = script.getAttribute('data-main');
 			if (dataMain) {  //获取data-main属性（如果存在）
-				//Preserve dataMain in case it is a path (i.e. contains '?')
+				//保存dataMain变量，防止转换后任然是路径 (i.e. contains '?')
 				mainScript = dataMain;
 
 				//Set final baseUrl if there is not already an explicit one,
@@ -2036,7 +2032,7 @@ var requirejs, require, define;
 				//Strip off any trailing .js since mainScript is now
 				//like a module name.  去除js后缀，作模块名
 				mainScript = mainScript.replace(jsSuffixRegExp, '');
-				//If mainScript is still a path, fall back to dataMain
+				//如果mainScript依旧是一个路径, 将mainScript重置为dataMain
 				if (req.jsExtRegExp.test(mainScript)) {
 					mainScript = dataMain;
 				}

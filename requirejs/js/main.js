@@ -21,15 +21,4 @@ require(['jquery', 'math'], function ($, math) {
 
         $('#app').html('has loaded!');
     })
-})
-
-function getNextElement(node) {
-    if (node.nodeType == 1) {
-        return node;
-    }
-    if (node.nextSibling) {
-        return getNextElement(node.nextSibling);
-    }
-
-    return null;
-}
+});
