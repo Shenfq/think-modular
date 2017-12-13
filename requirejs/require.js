@@ -727,7 +727,7 @@ var requirejs, require, define;
 			this.depMatched = [];
 			this.pluginMaps = {};
 			this.depCount = 0;
-			console.log(map);
+			
 			/* this.exports this.factory
 			   this.depMaps = [],
 			   this.enabled, this.fetched
@@ -2054,7 +2054,7 @@ var requirejs, require, define;
 
 		//运行匿名模块
 		if (typeof name !== 'string') {
-			//Adjust args appropriately
+			//参数的适配
 			callback = deps;
 			deps = name;
 			name = null;
@@ -2075,7 +2075,7 @@ var requirejs, require, define;
 			if (callback.length) { //将模块的回调函数转成字符串，然后进行一些处理
 				callback
 					.toString()
-					.replace(commentRegExp, commentReplace)
+					.replace(commentRegExp, commentReplace) //去除注释
 					.replace(cjsRequireRegExp, function (match, dep) {
 						deps.push(dep); //匹配出所有调用require的模块
 					});
