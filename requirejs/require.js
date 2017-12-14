@@ -213,7 +213,7 @@ var requirejs, require, define;
 			enabledRegistry = {},
 			undefEvents = {},
 			defQueue = [],
-			defined = {},
+			defined = {}, //已定义的模块
 			urlFetched = {},
 			bundlesMap = {},
 			requireCounter = 1,
@@ -545,8 +545,7 @@ var requirejs, require, define;
 		}
 
 		/**
-		 * Internal method to transfer globalQueue items to this context's
-		 * defQueue.
+		 * 内部方法，把globalQueue的依赖取出，放到当前上下文的defQueue中
 		 */
 		function takeGlobalQueue() {
 			//将全局的DefQueue添加到当前上下文的DefQueue
@@ -562,7 +561,7 @@ var requirejs, require, define;
 			}
 		}
 
-		handlers = {
+		handlers = { //兼容commonjs的方法
 			'require': function (mod) {
 				if (mod.require) {
 					return mod.require;
@@ -873,7 +872,7 @@ var requirejs, require, define;
 								} catch (e) {
 									err = e;
 								}
-							} else {
+							} else { //模块加载
 								exports = context.execCb(id, factory, depExports, exports);
 							}
 
@@ -1114,7 +1113,7 @@ var requirejs, require, define;
 							(this.map.isDefine ? this.map : this.map.parentMap),
 							false,
 							!this.skipMap);
-						this.depMaps[i] = depMap;
+						this.depMaps[i] = depMap; //获取的依赖映射
 						
 						handler = getOwn(handlers, depMap.id);
 
@@ -1123,7 +1122,7 @@ var requirejs, require, define;
 							return;
 						}
 
-						this.depCount += 1;
+						this.depCount += 1; //依赖项+1
 
 						on(depMap, 'defined', bind(this, function (depExports) {
 							if (this.undefed) {
@@ -1152,7 +1151,7 @@ var requirejs, require, define;
 					//Also, don't call enable if it is already enabled,
 					//important in circular dependency cases.
 					if (!hasProp(handlers, id) && mod && !mod.enabled) {
-						context.enable(depMap, this);
+						context.enable(depMap, this); //加载依赖
 					}
 				}));
 
@@ -2120,9 +2119,7 @@ var requirejs, require, define;
 	};
 
 	/**
-	 * Executes the text. Normally just uses eval, but can be modified
-	 * to use a better, environment-specific call. Only used for transpiling
-	 * loader plugins, not for plain JS modules.
+	 * eval函数的封装
 	 * @param {String} text the text to execute/evaluate.
 	 */
 	req.exec = function (text) {
