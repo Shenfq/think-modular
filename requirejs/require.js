@@ -790,7 +790,7 @@ var requirejs, require, define;
 				if (!this.depMatched[i]) {
 					this.depMatched[i] = true;
 					this.depCount -= 1;
-					this.depExports[i] = depExports;
+					this.depExports[i] = depExports; //将require对应的deps存放到这个数组
 				}
 			},
 
@@ -858,7 +858,7 @@ var requirejs, require, define;
 					this.defining = true;
 
 					if (this.depCount < 1 && !this.defined) {
-						if (isFunction(factory)) {
+						if (isFunction(factory)) { //初始化define方法定义的模块
 							//If there is an error listener, favor passing
 							//to that instead of throwing an error. However,
 							//only do it for define()'d  modules. require
@@ -904,9 +904,9 @@ var requirejs, require, define;
 						this.exports = exports;
 
 						if (this.map.isDefine && !this.ignore) {
-							defined[id] = exports;
+							defined[id] = exports; //加载的模块放入到defined数组中缓存
 
-							if (req.onResourceLoad) { 
+							if (req.onResourceLoad) { //暂时不知道有什么用
 								var resLoadMaps = [];
 								each(this.depMaps, function (depMap) {
 									resLoadMaps.push(depMap.normalizedMap || depMap);
@@ -928,7 +928,7 @@ var requirejs, require, define;
 
 					if (this.defined && !this.defineEmitted) {
 						this.defineEmitted = true;
-						this.emit('defined', this.exports);
+						this.emit('defined', this.exports); //激活defined事件
 						this.defineEmitComplete = true;
 					}
 
@@ -1128,9 +1128,9 @@ var requirejs, require, define;
 							if (this.undefed) {
 								return;
 							}
-							this.defineDep(i, depExports);
+							this.defineDep(i, depExports); //加载完毕的依赖模块放入depExports中，通过apply方式传入require定义的函数中
 							this.check();
-						}));
+						})); //绑定defined事件，同时将dep添加到registry中
 
 						if (this.errback) {
 							on(depMap, 'error', bind(this, this.errback));
@@ -1147,7 +1147,7 @@ var requirejs, require, define;
 					id = depMap.id;
 					mod = registry[id];
 
-					//Skip special modules like 'require', 'exports', 'module'
+					//跳过一些特殊模块，比如：'require', 'exports', 'module'
 					//Also, don't call enable if it is already enabled,
 					//important in circular dependency cases.
 					if (!hasProp(handlers, id) && mod && !mod.enabled) {
@@ -1541,8 +1541,8 @@ var requirejs, require, define;
 			},
 
 			/**
-			 * Called to enable a module if it is still in the registry
-			 * awaiting enablement. A second arg, parent, the parent module,
+			 * 启用一个模块，如果这个模块依然在注册器中等待。
+			 * A second arg, parent, the parent module,
 			 * is passed in for context, when this method is overridden by
 			 * the optimizer. Not shown here to keep code compact.
 			 */

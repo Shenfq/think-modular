@@ -531,3 +531,224 @@ requirejs提供了模块定义的方法：`define`，这个方法遵循AMD规范
 define(id?, dependencies?, factory);
 ```
 
+> define三个参数的含义如下：
+
+1. id表示模块名，可以忽略，如果忽略则定义的是匿名模块；
+2. dependencies表示模块的依赖项，是一个数组；
+3. factory表示模块定义函数，函数的return值为定义模块，如果有dependencies，该函数的参数就为这个数组的每一项，类似于angularjs的依赖注入。
+
+
+factory也支持commonjs的方式来定义模块，如果define没有传入依赖数组，factory会默认传入三个参数`require, exports, module`。
+没错，这三个参数与commonjs对应的加载方式保持一致。require用来引入模块，exports和module用来导出模块。
+
+```javascript
+//写法1：
+define(
+    ['dep1'],
+    function(dep1){
+        var mod;
+        //...
+        
+        return mod;
+    }
+);
+
+//写法2：
+define(
+    function (require, exports, module) {
+        var dep1 = require('dep1'), mod;
+
+        //...
+           
+        exports = mod;
+    }
+
+});
+```
+
+
+废话不多说，我们还是直接来看源码吧！
+
+
+
+```javascript
+/**
+ * 用来定义模块的函数。与require方法不同，模块名必须是第一个参数且为一个字符串，
+ * 模块定义函数（callback）必须有一个返回值，来对应第一个参数表示的模块名
+ */
+define = function (name, deps, callback) {
+	var node, context;
+
+	//运行匿名模块
+	if (typeof name !== 'string') {
+		//参数的适配
+		callback = deps;
+		deps = name;
+		name = null;
+	}
+
+	//这个模块可以没有依赖项
+	if (!isArray(deps)) {
+		callback = deps;
+		deps = null;
+	}
+
+	//如果没有指定名字，并且callback是一个函数，使用commonJS形式引入依赖
+	if (!deps && isFunction(callback)) {
+		deps = [];
+		//移除callback中的注释，
+		//将callback中的require取出，把依赖项push到deps数组中。
+		//只在callback传入的参数不为空时做这些
+		if (callback.length) { //将模块的回调函数转成字符串，然后进行一些处理
+			callback
+				.toString()
+				.replace(commentRegExp, commentReplace) //去除注释
+				.replace(cjsRequireRegExp, function (match, dep) {
+					deps.push(dep); //匹配出所有调用require的模块
+				});
+
+			//兼容CommonJS写法
+			deps = (callback.length === 1 ? ['require'] : ['require', 'exports', 'module']).concat(deps);
+		}
+	}
+
+	//If in IE 6-8 and hit an anonymous define() call, do the interactive
+	//work.
+	if (useInteractive) { //ie 6-8 进行特殊处理
+		node = currentlyAddingScript || getInteractiveScript();
+		if (node) {
+			if (!name) {
+				name = node.getAttribute('data-requiremodule');
+			}
+			context = contexts[node.getAttribute('data-requirecontext')];
+		}
+	}
+
+	//如果存在context将模块放到context的defQueue中，不存在contenxt，则把定义的模块放到全局的依赖队列中
+	if (context) {
+		context.defQueue.push([name, deps, callback]);
+		context.defQueueMap[name] = true;
+	} else {
+		globalDefQueue.push([name, deps, callback]);
+	}
+};
+```
+
+
+通过define定义模块最后都会放入到globalDefQueue数组中，当前上下文的defQueue数组中。具体怎么拿到定义的这些模块是使用`takeGlobalQueue`来完成的。
+
+```javascript
+
+/**
+ * 内部方法，把globalQueue的依赖取出，放到当前上下文的defQueue中
+ */
+function intakeDefines() { //获取并加载define方法添加的模块
+	var args;
+
+	//取出所有define方法定义的模块（放在globalqueue中）
+	takeGlobalQueue();
+
+	//Make sure any remaining defQueue items get properly processed.
+	while (defQueue.length) {
+		args = defQueue.shift();
+		if (args[0] === null) {
+			return onError(makeError('mismatch', 'Mismatched anonymous define() module: ' +
+				args[args.length - 1]));
+		} else {
+			//args are id, deps, factory. Should be normalized by the
+			//define() function.
+			callGetModule(args);
+		}
+	}
+	context.defQueueMap = {};
+}
+
+function takeGlobalQueue() {
+	//将全局的DefQueue添加到当前上下文的DefQueue
+	if (globalDefQueue.length) {
+		each(globalDefQueue, function (queueItem) {
+			var id = queueItem[0];
+			if (typeof id === 'string') {
+				context.defQueueMap[id] = true;
+			}
+			defQueue.push(queueItem);
+		});
+		globalDefQueue = [];
+	}
+}
+
+//intakeDefines()方法是在makeRequire中调用的
+makeRequire: function (relMap, options) { //用于构造require方法
+    options = options || {};
+    
+    function localRequire(deps, callback, errback) { //真正的require方法
+    
+        intakeDefines();
+        
+        context.nextTick(function () {
+			//Some defines could have been added since the
+			//require call, collect them.
+			intakeDefines();
+		}
+    }
+}
+
+//同时依赖被加载完毕的时候也会调用takeGlobalQueue方法
+//之前我们提到requirejs是向head头中insert一个script标签的方式加载模块的
+//在加载模块的同时，为script标签绑定了一个load事件
+node.addEventListener('load', context.onScriptLoad, false);
+
+//这个事件最后会调用completeLoad方法
+onScriptLoad: function (evt) {
+	if (evt.type === 'load' ||
+		(readyRegExp.test((evt.currentTarget || evt.srcElement).readyState))) {
+		var data = getScriptData(evt);
+		context.completeLoad(data.id);
+	}
+}
+
+completeLoad: function (moduleName) {
+    var found;
+    takeGlobalQueue();//获取加载的js中进行define的模块
+	while (defQueue.length) {
+		args = defQueue.shift();
+		if (args[0] === null) {
+			args[0] = moduleName;
+			
+			if (found) {
+				break;
+			}
+			found = true;
+		} else if (args[0] === moduleName) {
+			found = true;
+		}
+
+		callGetModule(args);
+	}
+	context.defQueueMap = {};
+}
+
+```
+
+无论是通过require的方式拿到defie定义的模块，还是在依赖加载完毕后，通过scriptLoad事件拿到定义的模块，这两种方式最后都使用`callGetModule()`这个方法进行模块加载。下面我们还是详细看看callGetModule之后，都发生了哪些事情。
+
+
+
+```javascript
+function callGetModule(args) {
+	//跳过已经加载的模块
+	if (!hasProp(defined, args[0])) {
+		getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]);
+	}
+}
+```
+
+其实callGetModule方法就是调用了getModule方法（之前已经介绍过了），getModule方法返回一个Module（模块加载器）实例，最后调用实例的init方法。init方法会调用check方法，在check方法里会执行define方法所定义的factory，最后将模块名与模块保存到defined全局变量中。
+
+```javascript
+exports = context.execCb(id, factory, depExports, exports);
+defined[id] = exports;
+```
+
+到这里定义模块的部分已经结束了。
+
