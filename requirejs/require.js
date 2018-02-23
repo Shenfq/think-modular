@@ -820,7 +820,7 @@ var requirejs, require, define;
 
 			load: function () {
 				var url = this.map.url;
-
+				console.log('load: ' + this.map.id);
 				//Regular dependency.
 				if (!urlFetched[url]) {
 					urlFetched[url] = true;
@@ -836,13 +836,13 @@ var requirejs, require, define;
 				if (!this.enabled || this.enabling) {
 					return;
 				}
-				
+
 				var err, cjsModule,
 					id = this.map.id,
 					depExports = this.depExports,
 					exports = this.exports,
 					factory = this.factory;
-
+				console.log('check: ' + id);
 				if (!this.inited) {
 					// 仅仅加载未被添加到defQueueMap中的依赖
 					if (!hasProp(context.defQueueMap, id)) {
@@ -1165,7 +1165,7 @@ var requirejs, require, define;
 				}));
 
 				this.enabling = false;
-
+				
 				this.check();
 			},
 
@@ -1559,7 +1559,7 @@ var requirejs, require, define;
 			 * load call.
 			 * @param {String} moduleName the name of the module to potentially complete.
 			 */
-			completeLoad: function (moduleName) {
+			completeLoad: function (moduleName) { console.log(moduleName + ' loaded!');
 				var found, args, mod,
 					shim = getOwn(config.shim, moduleName) || {},
 					shExports = shim.exports;
