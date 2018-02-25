@@ -1,11 +1,11 @@
 require.config({
     paths: {
         jquery: 'https://cdn.bootcss.com/jquery/3.2.1/jquery',
-        underscore: 'https://cdn.bootcss.com/underscore.js/1.8.3/underscore',
+        underscore: 'https://cdn.bootcss.com/underscore.js/1.4.3/underscore',
     },
     shim: {
         underscore: {
-            exprots: '_'
+            exports: '_'
         }
     }
 });

@@ -820,7 +820,7 @@ var requirejs, require, define;
 
 			load: function () {
 				var url = this.map.url;
-				console.log('load: ' + this.map.id);
+				console.log(this.map.id + ' is loading!');
 				//Regular dependency.
 				if (!urlFetched[url]) {
 					urlFetched[url] = true;
@@ -842,7 +842,7 @@ var requirejs, require, define;
 					depExports = this.depExports,
 					exports = this.exports,
 					factory = this.factory;
-				console.log('check: ' + id);
+
 				if (!this.inited) {
 					// 仅仅加载未被添加到defQueueMap中的依赖
 					if (!hasProp(context.defQueueMap, id)) {
@@ -1190,7 +1190,7 @@ var requirejs, require, define;
 			}
 		};
 
-		function callGetModule(args) {
+		function callGetModule(args) { console.log(args);
 			//跳过已经加载的模块
 			if (!hasProp(defined, args[0])) {
 				getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]);
@@ -1559,13 +1559,14 @@ var requirejs, require, define;
 			 * load call.
 			 * @param {String} moduleName the name of the module to potentially complete.
 			 */
-			completeLoad: function (moduleName) { console.log(moduleName + ' loaded!');
+			completeLoad: function (moduleName) {
+				console.log(moduleName + ' complete load!');
 				var found, args, mod,
 					shim = getOwn(config.shim, moduleName) || {},
 					shExports = shim.exports;
-
+					
 				takeGlobalQueue();
-
+				
 				while (defQueue.length) {
 					args = defQueue.shift();
 					if (args[0] === null) {
@@ -1589,7 +1590,7 @@ var requirejs, require, define;
 				//Do this after the cycle of callGetModule in case the result
 				//of those calls/init calls changes the registry.
 				mod = getOwn(registry, moduleName);
-
+				
 				if (!found && !hasProp(defined, moduleName) && mod && !mod.inited) {
 					if (config.enforceDefine && (!shExports || !getGlobal(shExports))) {
 						if (hasPathFallback(moduleName)) {
