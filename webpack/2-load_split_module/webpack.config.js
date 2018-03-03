@@ -1,11 +1,22 @@
-var webpack = require('webpack'),
-    path = require('path');
-module.exports = {
-    entry: {
-        app: './index.js'
-    },
-    output: {
-        path: path.resolve(__dirname, './'),
-        filename: 'dist.js'
+const path = require('path')
+const webpack = require('webpack')
+const merge = require('webpack-merge')
+const ManifestPlugin = require('webpack-manifest-plugin')
+const base = require('../webpack.base.js')
+
+module.exports = merge(base, {
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+  },
+  plugins: [
+    new ManifestPlugin(),
+    /* new webpack.optimize.CommonsChunkPlugin({
+      name: 'vendor'
+    }), */
+  ],
+  optimization: {
+    splitChunks: {
+      chunks: 'all'
     }
-}
+  }
+})

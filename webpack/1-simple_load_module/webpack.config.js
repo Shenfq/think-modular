@@ -1,11 +1,9 @@
-var webpack = require('webpack'),
-    path = require('path');
-module.exports = {
-    entry: {
-        app: './index.js'
-    },
-    output: {
-        path: path.resolve(__dirname, './'),
-        filename: 'dist.js'
-    }
-}
+const path = require('path')
+const merge = require('webpack-merge')
+const base = require('../webpack.base.js')
+
+module.exports = merge(base, {
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+  }
+})
