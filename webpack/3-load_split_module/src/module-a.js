@@ -4,4 +4,4 @@ export default {
   showName () {
     console.log(_.toUpper(this.name))
   }
-};
+}

@@ -2,8 +2,15 @@
   "name": "webpack-study",
   "description": "It's a project about learn webpack4",
   "version": "0.0.1",
+  "scripts": {
+    "test": "webpack --config test/webpack.config.js",
+    "webpack:v": "webpack --version",
+    "webpack:1": "webpack --config 1-simple_load_module/webpack.config.js",
+    "webpack:2": "webpack --config 2-load_async_module/webpack.config.js",
+    "webpack:3": "webpack --config 3-load_split_module/webpack.config.js"
+  },
   "devDependencies": {
-    "html-webpack-plugin": "^3.0.4",
+    "html-webpack-plugin": "github:webpack-contrib/html-webpack-plugin",
     "webpack": "^4.0.1",
     "webpack-cli": "^2.0.10",
     "webpack-manifest-plugin": "^2.0.0-rc.2",

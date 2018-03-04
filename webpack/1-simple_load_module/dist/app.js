@@ -33,7 +33,7 @@
 	// 暴露已缓存的模块
 	__webpack_require__.c = installedModules;
 
-	// define getter function for harmony exports
+	// 为模块暴露的其他变量（除default之外的变量），定义一个getter函数
 	__webpack_require__.d = function(exports, name, getter) {
 		if(!__webpack_require__.o(exports, name)) {
 			Object.defineProperty(exports, name, {
@@ -44,15 +44,15 @@
 		}
 	};
 
-	// define __esModule on exports
+	// 定义exports使用的是es的方式导出，在require的时候会默认加载default
 	__webpack_require__.r = function(exports) {
 		Object.defineProperty(exports, '__esModule', { value: true });
 	};
 
-	// getDefaultExport function for compatibility with non-harmony modules
+	// 获取默认模块默认暴露的变量，兼容多种模块化方案
 	__webpack_require__.n = function(module) {
 		var getter = module && module.__esModule ?
-			function getDefault() { return module['default']; } :
+			function getDefault() { return module['default']; } : //如果是es的模块化方案，默认取default
 			function getModuleExports() { return module; };
 		__webpack_require__.d(getter, 'a', getter);
 		return getter;

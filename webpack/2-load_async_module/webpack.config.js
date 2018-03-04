@@ -5,18 +5,13 @@ const ManifestPlugin = require('webpack-manifest-plugin')
 const base = require('../webpack.base.js')
 
 module.exports = merge(base, {
+  entry: {
+    app: path.resolve(__dirname, 'src/main.js')
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
   },
   plugins: [
-    new ManifestPlugin(),
-    /* new webpack.optimize.CommonsChunkPlugin({
-      name: 'vendor'
-    }), */
-  ],
-  optimization: {
-    splitChunks: {
-      chunks: 'all'
-    }
-  }
+    new ManifestPlugin()
+  ]
 })
