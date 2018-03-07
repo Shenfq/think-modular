@@ -1,5 +1,5 @@
 (function(modules) { // webpack启动器
- 	// JSONP的实现，用来加载chunk
+ 	// JSONP的回调（使用JSONP的方式进行模块的异步加载），用来加载chunk
  	function webpackJsonpCallback(data) {
  		var chunkIds = data[0];
  		var moreModules = data[1]
@@ -27,37 +27,37 @@
  	};
 
 
- 	// The module cache
+ 	// 模块缓存对象
  	var installedModules = {};
 
- 	// object to store loaded and loading chunks
+ 	// 加载异步块并进行缓存
  	var installedChunks = {
  		"app": 0
  	};
 
 
 
- 	// The require function
+ 	// require方法的实现
  	function __webpack_require__(moduleId) {
 
- 		// Check if module is in cache
+ 		// 检查该模块是否已在缓存中
  		if(installedModules[moduleId]) {
  			return installedModules[moduleId].exports;
  		}
- 		// Create a new module (and put it into the cache)
+ 		// 创建一个新模块 (并将模块放入缓存对象中)
  		var module = installedModules[moduleId] = {
  			i: moduleId,
  			l: false,
  			exports: {}
  		};
 
- 		// Execute the module function
+ 		// 执行模块方法
  		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
 
- 		// Flag the module as loaded
+ 		// 标记模块为已加载
  		module.l = true;
 
- 		// Return the exports of the module
+ 		// 返回加载后的模块对象
  		return module.exports;
  	}
 
@@ -67,22 +67,22 @@
  		var promises = [];
 
 
- 		// JSONP chunk loading for javascript
+ 		// 使用JSONP加载模块
 
  		var installedChunkData = installedChunks[chunkId];
- 		if(installedChunkData !== 0) { // 0 means "already installed".
+ 		if(installedChunkData !== 0) { // 0表示模块已经被安装过
 
- 			// a Promise means "currently loading".
+ 			// 返回promise表示 "正在加载中".
  			if(installedChunkData) {
  				promises.push(installedChunkData[2]);
  			} else {
- 				// setup Promise in chunk cache
+ 				// 设置promise到chunk缓存中
  				var promise = new Promise(function(resolve, reject) {
  					installedChunkData = installedChunks[chunkId] = [resolve, reject];
  				});
  				promises.push(installedChunkData[2] = promise);
 
- 				// start chunk loading
+ 				// 开始加载chunk
  				var head = document.getElementsByTagName('head')[0];
  				var script = document.createElement('script');
 
@@ -93,12 +93,12 @@
  					script.setAttribute("nonce", __webpack_require__.nc);
  				}
  				script.src = __webpack_require__.p + "" + ({}[chunkId]||chunkId) + ".bundle.js";
- 				var timeout = setTimeout(function(){
+ 				var timeout = setTimeout(function(){ //超时时间2分钟
  					onScriptComplete({ type: 'timeout', target: script });
  				}, 120000);
  				script.onerror = script.onload = onScriptComplete;
  				function onScriptComplete(event) {
- 					// avoid mem leaks in IE.
+ 					// 避免IE中发生内存泄漏
  					script.onerror = script.onload = null;
  					clearTimeout(timeout);
  					var chunk = installedChunks[chunkId];
@@ -120,13 +120,13 @@
  		return Promise.all(promises);
  	};
 
- 	// expose the modules object (__webpack_modules__)
- 	__webpack_require__.m = modules;
+	// 暴露所有模块对象 (__webpack_modules__)
+	__webpack_require__.m = modules;
 
- 	// expose the module cache
- 	__webpack_require__.c = installedModules;
+	// 暴露已缓存的模块
+	__webpack_require__.c = installedModules;
 
- 	// define getter function for harmony exports
+ 	// 为模块暴露的其他变量（除default之外的变量），定义一个getter函数
  	__webpack_require__.d = function(exports, name, getter) {
  		if(!__webpack_require__.o(exports, name)) {
  			Object.defineProperty(exports, name, {
@@ -137,24 +137,24 @@
  		}
  	};
 
- 	// define __esModule on exports
- 	__webpack_require__.r = function(exports) {
- 		Object.defineProperty(exports, '__esModule', { value: true });
- 	};
+	// 定义exports使用的是es的方式导出，在require的时候会默认加载default
+	__webpack_require__.r = function (exports) {
+		Object.defineProperty(exports, '__esModule', { value: true });
+	};
 
- 	// getDefaultExport function for compatibility with non-harmony modules
- 	__webpack_require__.n = function(module) {
- 		var getter = module && module.__esModule ?
- 			function getDefault() { return module['default']; } :
- 			function getModuleExports() { return module; };
- 		__webpack_require__.d(getter, 'a', getter);
- 		return getter;
- 	};
+	// 获取默认模块默认暴露的变量，兼容多种模块化方案
+	__webpack_require__.n = function (module) {
+		var getter = module && module.__esModule ?
+			function getDefault() { return module['default']; } : //如果是es的模块化方案，默认取default
+			function getModuleExports() { return module; };
+		__webpack_require__.d(getter, 'a', getter);
+		return getter;
+	};
 
  	// Object.prototype.hasOwnProperty.call
  	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
 
- 	// __webpack_public_path__
+ 	// 公共路径，webpack中设置的 pbulicPath
  	__webpack_require__.p = "";
 
  	// on error function for async loading
@@ -162,7 +162,7 @@
 
  	var jsonpArray = window["webpackJsonp"] = window["webpackJsonp"] || [];
  	var oldJsonpFunction = jsonpArray.push.bind(jsonpArray);
- 	jsonpArray.push = webpackJsonpCallback;
+	jsonpArray.push = webpackJsonpCallback; //重写push方法为jsonp回调函数，在异步加载的chunk中会调用webpackJsonp.push
  	jsonpArray = jsonpArray.slice();
  	for(var i = 0; i < jsonpArray.length; i++) webpackJsonpCallback(jsonpArray[i]);
  	var parentJsonpFunction = oldJsonpFunction;
