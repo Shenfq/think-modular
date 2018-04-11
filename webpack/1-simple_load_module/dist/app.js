@@ -63,7 +63,7 @@
 
 	// __webpack_public_path__
 	__webpack_require__.p = "";
-	
+
 	// 加载入口模块
 	return __webpack_require__(__webpack_require__.s = "./src/main.js");
 })({
