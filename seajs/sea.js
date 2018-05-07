@@ -38,19 +38,19 @@
   }
 
   /**
-   * util-events.js - The minimal events support
+   * util-events.js - 自定义事件系统
    */
 
   var events = data.events = {}
 
-  // Bind event
+  // 绑定事件
   seajs.on = function(name, callback) {
     var list = events[name] || (events[name] = [])
     list.push(callback)
     return seajs
   }
 
-  // Remove event. If `callback` is undefined, remove all callbacks for the
+  // 移除事件. If `callback` is undefined, remove all callbacks for the
   // event. If `event` and `callback` are both undefined, remove all callbacks
   // for all events
   seajs.off = function(name, callback) {
@@ -77,16 +77,16 @@
     return seajs
   }
 
-  // Emit event, firing all bound callbacks. Callbacks receive the same
+  // 触发事件, firing all bound callbacks. Callbacks receive the same
   // arguments as `emit` does, apart from the event name
   var emit = seajs.emit = function(name, data) {
     var list = events[name]
 
     if (list) {
-      // Copy callback lists to prevent modification
+      // 拷贝事件队列，防止被修改
       list = list.slice()
 
-      // Execute event callbacks, use index because it's the faster.
+      // 执行事件回调
       for(var i = 0, len = list.length; i < len; i++) {
         list[i](data)
       }
@@ -258,7 +258,7 @@
   // For Developers
   seajs.resolve = id2Uri
 
-  // Check environment
+  // 检测环境，是否为webworker
   var isWebWorker = typeof window === 'undefined' && typeof importScripts !== 'undefined' && isFunction(importScripts)
 
   // Ignore about:xxx and blob:xxx
@@ -367,7 +367,7 @@
     var baseElement = head.getElementsByTagName("base")[0]
 
     var currentlyAddingScript
-
+    //定义远程加载js的方法
     function request(url, callback, charset, crossorigin) {
       var node = doc.createElement("script")
 
@@ -390,7 +390,7 @@
       currentlyAddingScript = node
 
       // ref: #185 & http://dev.jquery.com/ticket/2709
-      baseElement ?
+      baseElement ? //将新建的 script 标签插入到 head
           head.insertBefore(node, baseElement) :
           head.appendChild(node)
 
@@ -729,7 +729,7 @@
     ERROR: 7
   }
 
-
+  //模块加载器，用来进行模块的加载
   function Module(uri, deps) {
     this.uri = uri
     this.dependencies = deps || []
@@ -1104,7 +1104,7 @@
   }
 
 
-  // Public API
+  // 对外暴露的公共api
 
   seajs.use = function(ids, callback) {
     Module.use(ids, callback, data.cwd + "_use_" + cid())
