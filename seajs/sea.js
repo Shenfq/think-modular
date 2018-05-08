@@ -13,7 +13,7 @@
     version: "3.0.1"
   }
 
-  var data = seajs.data = {}
+  var data = seajs.data = {} //数据存储对象，存储模块id、事件函数等等
 
 
   /**
@@ -108,7 +108,7 @@
   // Extract the directory portion of a path
   // dirname("a/b/c.js?t=123#xx/zz") ==> "a/b/"
   // ref: http://jsperf.com/regex-vs-split/2
-  function dirname(path) {
+  function dirname(path) { //匹配当前url的路径
     return path.match(DIRNAME_RE)[0]
   }
 
@@ -134,14 +134,14 @@
     return path
   }
 
-  // Normalize an id
+  // 将id进行标准化
   // normalize("path/to/a") ==> "path/to/a.js"
   // NOTICE: substring is faster than negative slice and RegExp
   function normalize(path) {
     var last = path.length - 1
     var lastC = path.charCodeAt(last)
 
-    // If the uri ends with `#`, just return it without '#'
+    // 如果uri已 # 结尾，去除#
     if (lastC === 35 /* "#" */) {
       return path.substring(0, last)
     }
@@ -155,12 +155,12 @@
   var PATHS_RE = /^([^/:]+)(\/.+)$/
   var VARS_RE = /{([^{]+)}/g
 
-  function parseAlias(id) {
+  function parseAlias(id) { //如果有定义alias，将id替换为别名对应的地址
     var alias = data.alias
     return alias && isString(alias[id]) ? alias[id] : id
   }
 
-  function parsePaths(id) {
+  function parsePaths(id) { //替换路径
     var paths = data.paths
     var m
 
@@ -171,7 +171,7 @@
     return id
   }
 
-  function parseVars(id) {
+  function parseVars(id) { //替换{}中的变量
     var vars = data.vars
 
     if (vars && id.indexOf("{") > -1) {
@@ -183,7 +183,7 @@
     return id
   }
 
-  function parseMap(uri) {
+  function parseMap(uri) { //map转换
     var map = data.map
     var ret = uri
 
@@ -211,20 +211,20 @@
     var ret
     var first = id.charCodeAt(0)
 
-    // Absolute
-    if (ABSOLUTE_RE.test(id)) {
+    // Absolute 绝对地址
+    if (ABSOLUTE_RE.test(id)) { // 路径以 // 开头 或 带有 :/
       ret = id
     }
-    // Relative
-    else if (first === 46 /* "." */) {
+    // Relative 相对地址
+    else if (first === 46 /* "." */) { // 路径以 . 开头
       ret = (refUri ? dirname(refUri) : data.cwd) + id
     }
-    // Root
-    else if (first === 47 /* "/" */) {
+    // Root 根目录
+    else if (first === 47 /* "/" */) { // 路径以 / 开头
       var m = data.cwd.match(ROOT_DIR_RE)
       ret = m ? m[0] + id.substring(1) : id
     }
-    // Top-level
+    // 顶级目录
     else {
       ret = data.base + id
     }
@@ -237,7 +237,7 @@
     return realpath(ret)
   }
 
-  function id2Uri(id, refUri) {
+  function id2Uri(id, refUri) { // 将id转为uri，转换配置中的一些变量
     if (!id) return ""
 
     id = parseAlias(id)
@@ -266,7 +266,7 @@
   var loaderDir
   // Sea.js's full path
   var loaderPath
-  // Location is read-only from web worker, should be ok though
+  // Location is read-only from web worker, should be ok though 当前加载文件的路径
   var cwd = (!location.href || IGNORE_LOCATION_RE.test(location.href)) ? '' : dirname(location.href)
 
   if (isWebWorker) {
@@ -328,18 +328,18 @@
     var doc = document
     var scripts = doc.scripts
 
-    // Recommend to add `seajsnode` id for the `sea.js` script element
+    // 建议为加载seajs的标签添加 'id="seajsnode"'
     var loaderScript = doc.getElementById("seajsnode") ||
       scripts[scripts.length - 1]
 
     function getScriptAbsoluteSrc(node) {
       return node.hasAttribute ? // non-IE6/7
         node.src :
-        // see http://msdn.microsoft.com/en-us/library/ms536429(VS.85).aspx
+        // 低版本ie下，需要第二个参数为4才会返回完整路径的src
         node.getAttribute("src", 4)
     }
-    loaderPath = getScriptAbsoluteSrc(loaderScript)
-    // When `sea.js` is inline, set loaderDir to current working directory
+    loaderPath = getScriptAbsoluteSrc(loaderScript) //获取加载scrpit标签的完整路径
+    // 当seajs被内联加载时, 设置 loaderDir 为当前工作路径
     loaderDir = dirname(loaderPath || cwd)
   }
 
@@ -352,7 +352,7 @@
       // Load with importScripts
       var error
       try {
-        importScripts(url)
+        importScripts(url) //webwork中使用importScripts方法加载其他js脚本
       } catch (e) {
         error = e
       }
@@ -424,9 +424,9 @@
           head.removeChild(node)
         }
 
-        // Dereference the node
+        // 去除对node的引用，防止内存泄漏
         node = null
-
+        // 脚本加载完毕的回调
         callback(error)
       }
     }
@@ -438,7 +438,7 @@
 
   var interactiveScript
 
-  function getCurrentScript() {
+  function getCurrentScript() { //获取当前加载中的script标签
     if (currentlyAddingScript) {
       return currentlyAddingScript
     }
@@ -464,7 +464,7 @@
   }
 
   /**
-   * util-deps.js - The parser for dependencies
+   * util-deps.js - 解析所有的依赖关系
    * ref: tests/research/parse-dependencies/test.html
    * ref: https://github.com/seajs/crequire
    */
@@ -713,19 +713,19 @@
   var callbackList = {}
 
   var STATUS = Module.STATUS = { //模块加载的一些状态码
-    // 1 - The `module.uri` is being fetched
+    // 1 - The `module.uri` is being fetched 模块加载中
     FETCHING: 1,
-    // 2 - The meta data has been saved to cachedMods
+    // 2 - The meta data has been saved to cachedMods 元数据已经被存储在了cachedMods中
     SAVED: 2,
-    // 3 - The `module.dependencies` are being loaded
+    // 3 - The `module.dependencies` are being loaded 模块依赖已经加载完毕
     LOADING: 3,
-    // 4 - The module are ready to execute
+    // 4 - The module are ready to execute 模块准备执行中
     LOADED: 4,
-    // 5 - The module is being executed
+    // 5 - The module is being executed 模块已经被执行
     EXECUTING: 5,
-    // 6 - The `module.exports` is available
+    // 6 - The `module.exports` is available module.exports处于可用状态
     EXECUTED: 6,
-    // 7 - 404
+    // 7 - 404 错误信息，比如404
     ERROR: 7
   }
 
@@ -739,14 +739,14 @@
     this._entry = []
   }
 
-  // Resolve module.dependencies
+  // 转换模块依赖
   Module.prototype.resolve = function() {
     var mod = this
     var ids = mod.dependencies
     var uris = []
 
     for (var i = 0, len = ids.length; i < len; i++) {
-      uris[i] = Module.resolve(ids[i], mod.uri)
+      uris[i] = Module.resolve(ids[i], mod.uri) //将模块id转为uri
     }
     return uris
   }
@@ -990,20 +990,20 @@
     }
   }
 
-  // Resolve id to uri
+  // 将id转化为uri
   Module.resolve = function(id, refUri) {
-    // Emit `resolve` event for plugins such as text plugin
+    // 有些插件模块需要调用resolve事件来将id转为uri，比如text-plugin
     var emitData = { id: id, refUri: refUri }
     emit("resolve", emitData)
 
-    return emitData.uri || seajs.resolve(emitData.id, refUri)
+    return emitData.uri || seajs.resolve(emitData.id, refUri) // 调用 id2Uri
   }
 
   // Define a module
   Module.define = function (id, deps, factory) {
     var argsLen = arguments.length
 
-    // define(factory)
+    // define(factory) 一个参数时，为factory
     if (argsLen === 1) {
       factory = id
       id = undefined
@@ -1011,30 +1011,30 @@
     else if (argsLen === 2) {
       factory = deps
 
-      // define(deps, factory)
+      // define(deps, factory) 第一个参数为数组，表示依赖模块
       if (isArray(id)) {
         deps = id
         id = undefined
       }
-      // define(id, factory)
+      // define(id, factory) 第一个参数不为数组，表示模块id
       else {
         deps = undefined
       }
     }
 
-    // Parse dependencies according to the module factory code
+    // 从factory中提取所有的依赖模块到dep数组中
     if (!isArray(deps) && isFunction(factory)) {
       deps = typeof parseDependencies === "undefined" ? [] : parseDependencies(factory.toString())
     }
 
-    var meta = {
+    var meta = { //模块加载与定义的元数据
       id: id,
       uri: Module.resolve(id),
       deps: deps,
       factory: factory
     }
 
-    // Try to derive uri in IE6-9 for anonymous modules
+    // 在IE6-9中，通过获取加载中的script标签来获取匿名模块的uri
     if (!isWebWorker && !meta.uri && doc.attachEvent && typeof getCurrentScript !== "undefined") {
       var script = getCurrentScript()
 
@@ -1046,7 +1046,7 @@
       // to use onload event to get the uri
     }
 
-    // Emit `define` event, used in nocache plugin, seajs node version etc
+    // 激活define事件, used in nocache plugin, seajs node version etc
     emit("define", meta)
 
     meta.uri ? Module.save(meta.uri, meta) :
@@ -1069,20 +1069,20 @@
     }
   }
 
-  // Get an existed module or create a new one
+  // 获取已存在的模块，或者新建一个模块
   Module.get = function(uri, deps) {
     return cachedMods[uri] || (cachedMods[uri] = new Module(uri, deps))
   }
 
-  // Use function is equal to load a anonymous module
+  // 该方法用来加载一个匿名模块
   Module.use = function (ids, callback, uri) {
     var mod = Module.get(uri, isArray(ids) ? ids : [ids])
 
-    mod._entry.push(mod)
+    mod._entry.push(mod) //放入入口模块中
     mod.history = {}
     mod.remain = 1
 
-    mod.callback = function() {
+    mod.callback = function() { //模块加载完毕的回调
       var exports = []
       var uris = mod.resolve()
 
@@ -1106,13 +1106,13 @@
 
   // 对外暴露的公共api
 
-  seajs.use = function(ids, callback) {
+  seajs.use = function(ids, callback) { //类似于requirejs的main属性
     Module.use(ids, callback, data.cwd + "_use_" + cid())
     return seajs
   }
 
   Module.define.cmd = {}
-  global.define = Module.define
+  global.define = Module.define //全局变量中，define调用的实际为 Module.define
 
 
   // For Developers
@@ -1167,17 +1167,17 @@
       var prev = data[key]
 
       // Merge object config such as alias, vars
-      if (prev && isObject(prev)) {
+      if (prev && isObject(prev)) { //如果之前已经设置过，将两个值进行merge
         for (var k in curr) {
           prev[k] = curr[k]
         }
       }
       else {
-        // Concat array config such as map
+        // 如果config为array，进行concat，比如map属性
         if (isArray(prev)) {
           curr = prev.concat(curr)
         }
-        // Make sure that `data.base` is an absolute path
+        // 确保 base 为一个相对路径
         else if (key === "base") {
           // Make sure end with "/"
           if (curr.slice(-1) !== "/") {
@@ -1191,7 +1191,7 @@
       }
     }
 
-    emit("config", configData)
+    emit("config", configData) //如果有定义了设置config的事件，则触发
     return seajs
   }
 
