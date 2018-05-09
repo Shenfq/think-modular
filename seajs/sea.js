@@ -381,7 +381,7 @@
 
       addOnload(node, callback, url)
 
-      node.async = true
+      node.async = true //异步加载
       node.src = url
 
       // For some cache cases in IE 6-8, the script executes IMMEDIATELY after
@@ -431,7 +431,7 @@
       }
     }
 
-    // For Developers
+    //用来加载js脚本的方法
     seajs.request = request
 
   }
@@ -464,7 +464,7 @@
   }
 
   /**
-   * util-deps.js - 解析所有的依赖关系
+   * util-deps.js - 一个状态机，用来解析所有的通过require导入的模块，获取依赖关系
    * ref: tests/research/parse-dependencies/test.html
    * ref: https://github.com/seajs/crequire
    */
@@ -478,27 +478,27 @@
     var braceState, braceStack = [], isReturn
     while(index < length) {
       readch()
-      if(isBlank()) {
+      if(isBlank()) { //是否为空格
         if(isReturn && (peek == '\n' || peek == '\r')) {
           braceState = 0
           isReturn = 0
         }
       }
-      else if(isQuote()) {
+      else if(isQuote()) { //是否为引号
         dealQuote()
         isReg = 1
         isReturn = 0
         braceState = 0
       }
-      else if(peek == '/') {
+      else if(peek == '/') { //注释或正则
         readch()
-        if(peek == '/') {
+        if(peek == '/') { //注释
           index = s.indexOf('\n', index)
           if(index == -1) {
             index = s.length
           }
         }
-        else if(peek == '*') {
+        else if(peek == '*') { //注释
           var i = s.indexOf('\n', index)
           index = s.indexOf('*/', index)
           if(index == -1) {
@@ -512,7 +512,7 @@
             isReturn = 0
           }
         }
-        else if(isReg) {
+        else if(isReg) { //正则
           dealReg()
           isReg = 0
           isReturn = 0
@@ -575,8 +575,8 @@
         isReturn = 0
       }
     }
-    return res
-    function readch() {
+    return res //返回所有依赖
+    function readch() { //前移
       peek = s.charAt(index++)
     }
     function isBlank() {
@@ -635,10 +635,10 @@
         }
       }
     }
-    function isWord() {
+    function isWord() { //是否为一个词
       return /[a-z_$]/i.test(peek)
     }
-    function dealWord() {
+    function dealWord() { //是否是关键词
       var s2 = s.slice(index - 1)
       var r = /^[\w$]+/.exec(s2)[0]
       parentheseState = {
@@ -760,7 +760,7 @@
       var entry = mod._entry[i]
       var count = 0
       for (var j = 0; j < len; j++) {
-        var m = mod.deps[mod.dependencies[j]]
+        var m = mod.deps[mod.dependencies[j]] //取出依赖的模块
         // If the module is unload and unused in the entry, pass entry to it
         if (m.status < STATUS.LOADED && !entry.history.hasOwnProperty(m.uri)) {
           entry.history[m.uri] = true
@@ -780,16 +780,16 @@
     }
   }
 
-  // Load module.dependencies and fire onload when all done
+  // 所有依赖加载完毕后执行 onload
   Module.prototype.load = function() {
     var mod = this
 
-    // If the module is being loaded, just wait it onload call
+    // 如果当前模块在loading中，等待onlaod事件的调用
     if (mod.status >= STATUS.LOADING) {
       return
     }
 
-    mod.status = STATUS.LOADING
+    mod.status = STATUS.LOADING //模块加载中
 
     // Emit `load` event for plugins such as combo plugin
     var uris = mod.resolve()
@@ -808,7 +808,7 @@
       return
     }
 
-    // Begin parallel loading
+    // 开始进行并行加载
     var requestCache = {}
     var m
 
@@ -826,7 +826,7 @@
     // Send all requests at last to avoid cache bug in IE6-9. Issues#808
     for (var requestUri in requestCache) {
       if (requestCache.hasOwnProperty(requestUri)) {
-        requestCache[requestUri]()
+        requestCache[requestUri]() //调用 seajs.request
       }
     }
   }
@@ -854,7 +854,7 @@
     mod.status = STATUS.ERROR
   }
 
-  // Execute a module
+  // 执行一个模块
   Module.prototype.exec = function () {
     var mod = this
 
@@ -920,7 +920,7 @@
     return mod.exports
   }
 
-  // Fetch a module
+  // 设置模块的加载中的一些属性，以及onload方法
   Module.prototype.fetch = function(requestCache) {
     var mod = this
     var uri = mod.uri
@@ -943,7 +943,7 @@
       return
     }
 
-    fetchingList[requestUri] = true
+    fetchingList[requestUri] = true //状态置为加载中
     callbackList[requestUri] = [mod]
 
     // Emit `request` event for plugins such as text plugin
@@ -965,9 +965,9 @@
       seajs.request(emitData.requestUri, emitData.onRequest, emitData.charset, emitData.crossorigin)
     }
 
-    function onRequest(error) {
+    function onRequest(error) { //模块加载完毕的回调
       delete fetchingList[requestUri]
-      fetchedList[requestUri] = true
+      fetchedList[requestUri] = true //状态置为加载完毕
 
       // Save meta data of anonymous module
       if (anonymousMeta) {
@@ -999,7 +999,7 @@
     return emitData.uri || seajs.resolve(emitData.id, refUri) // 调用 id2Uri
   }
 
-  // Define a module
+  // 定义一个模块
   Module.define = function (id, deps, factory) {
     var argsLen = arguments.length
 
@@ -1054,7 +1054,7 @@
       anonymousMeta = meta
   }
 
-  // Save meta data to cachedMods
+  // 存储元数据到 cachedMods 中
   Module.save = function(uri, meta) {
     var mod = Module.get(uri)
 
@@ -1076,13 +1076,13 @@
 
   // 该方法用来加载一个匿名模块
   Module.use = function (ids, callback, uri) {
-    var mod = Module.get(uri, isArray(ids) ? ids : [ids])
+    var mod = Module.get(uri, isArray(ids) ? ids : [ids]) //获取或新建模块
 
     mod._entry.push(mod) //放入入口模块中
     mod.history = {}
     mod.remain = 1
 
-    mod.callback = function() { //模块加载完毕的回调
+    mod.callback = function() { //设置模块加载完毕的回调
       var exports = []
       var uris = mod.resolve()
 
@@ -1091,7 +1091,7 @@
       }
 
       if (callback) {
-        callback.apply(global, exports)
+        callback.apply(global, exports) //执行回调
       }
 
       delete mod.callback
