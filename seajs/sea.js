@@ -492,20 +492,20 @@
       }
       else if(peek == '/') { //注释或正则
         readch()
-        if(peek == '/') { //注释
+        if(peek == '/') { //双斜杠注释
           index = s.indexOf('\n', index)
           if(index == -1) {
             index = s.length
           }
         }
-        else if(peek == '*') { //注释
+        else if(peek == '*') { //斜杠+星注释
           var i = s.indexOf('\n', index)
           index = s.indexOf('*/', index)
           if(index == -1) {
             index = length
           }
           else {
-            index += 2
+            index += 2 //跳过从 /* 到 */ 的部分
           }
           if(isReturn && i != -1 && i < index) {
             braceState = 0

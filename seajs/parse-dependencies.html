@@ -50,7 +50,6 @@ define(function(require, exports, module) {
 
   require('a');
   require  ('b')
-  require(  "b"   )  ;
   var o = {
     require: function() {
     },
@@ -69,7 +68,6 @@ define(function(require, exports, module) {
   var xrequire = function() {};
   xrequire('xrequire');
 
-  test.assert(require('b').name === 'b', 'b');
   test.assert(require('e').name === 'e', 'e');
 
   /**
@@ -139,8 +137,6 @@ define(function(require, exports, module) {
 
   });
 </textarea>
-<textarea id="prepare" class="code">
-</textarea>
 
 <button id="run">Parse Dependencies</button>
 <pre id="result"></pre>
@@ -156,32 +152,15 @@ function now() {
   return new Date().getTime()
 }
 
-function unique(arr) {
-  var obj = {}
-  var ret = []
-
-  for (var i = 0, len = arr.length; i < len; i++) {
-    var item = arr[i]
-    if (obj[item] !== 1) {
-      obj[item] = 1
-      ret.push(item)
-    }
-  }
-
-  return ret
-}
-
-
 $('run').onclick = function() {
   var result, t
   if (typeof parser === 'string') parser = window[parser]
 
   var code = $('source').value
-  $('prepare').innerHTML = parser.prepare(code)
 
   t = now()
   for (var i = 0; i < 100; i++) {
-    result = parser.parse(code)
+    result = parseDependencies(code)
   }
   t = now() - t
 
@@ -196,761 +175,239 @@ $('run').onclick = function() {
   $('result').innerHTML = result.join('\n')
 }
 
+const EXPECTED = ['../test', './a', 'a', 'b', 'f', 'e', 'e', 'x', 's', 'rare_winter_2', 'rare_winter_4']
 
-var EXPECTED = ['../test', './a', 'a', 'b', 'f', 'e', 'x', 's', 'rare_winter_2', 'rare_winter_4']
-var parser = 'parserBySeaJS'
-
-var parserBySeaJS = (function() {
-  var REQUIRE_RE = /"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|\/\*[\S\s]*?\*\/|\/(?:\\\/|[^/\r\n])+\/(?=[^\/])|\/\/.*|\.\s*require|(?:^|[^$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function parse(code) {
-    var ret = [], m
-    REQUIRE_RE.lastIndex = 0
-    code = code.replace(/\\\\/g, '')
-
-    while ((m = REQUIRE_RE.exec(code))) {
-        if(m[2]) ret.push(m[2])
-    }
-
-    return unique(ret)
+function parseDependencies(s) {
+  if(s.indexOf('require') == -1) {
+    return []
   }
-
-  return {
-    prepare: function(code) {
-      return code
-          .replace(/\\\\/g, '')
-          .replace(REQUIRE_RE, function(m, m1, m2) {
-            console.log([m, m1, m2].join(' | '))
-            console.log('---------------------')
-            return m2 ? m : ''
-          })
-    },
-    parse: parse
-  }
-})()
-
-var parserByEthanZhang = (function() {
-  var NOISE_RE = /(['"])((?:\\\1|[\s\S])+?)\1|\/\*[\S\s]*?\*\/|\/(?:\\\/|[^/])+\/|\/\/.*/g
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-  var primatives = [], primIndex = 0
-
-  function prepare(code) {
-    return code.replace(NOISE_RE, function(m, quot, str) {
-      if(quot){
-        primatives[++primIndex] = str
-        return quot + primIndex + quot
-      }
-      return ''
-    })
-  }
-
-  function parse(code) {
-    code = prepare(code)
-    var ret = [], match
-
-    REQUIRE_RE.lastIndex = 0
-    while ((match = REQUIRE_RE.exec(code))) {
-      ret.push(primatives[match[2]])
-    }
-
-    return unique(ret)
-  }
-
-  return {
-    prepare: prepare,
-    parse: parse
-  }
-})()
-
-var parserByLifesinger = (function() {
-  var COMMENT_RE = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function prepare(code) {
-    return code
-        .replace(COMMENT_RE, '')
-  }
-
-  function parse(code) {
-    code = prepare(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
+  var index = 0, peek, length = s.length, isReg = 1, modName = 0, res = []
+  var parentheseState = 0, parentheseStack = []
+  var braceState, braceStack = [], isReturn
+  while(index < length) {
+    readch()
+    if(isBlank()) { //是否为空格
+      if(isReturn && (peek == '\n' || peek == '\r')) {
+        braceState = 0
+        isReturn = 0
       }
     }
-
-    return unique(ret)
-  }
-
-  return {
-    prepare: prepare,
-    parse: parse
-  }
-})()
-
-var parserByLifesinger2 = (function() {
-  // multi-line comments
-  var COMMENT_M_RE = /^\s*\/\*[\s\S]*?\*\/\s*$/mg
-  // single-line comments
-  var COMMENT_S_RE = /^\s*\/\/.*$/mg
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function prepare(code) {
-    return code
-        .replace(COMMENT_M_RE, '')
-        .replace(COMMENT_S_RE, '')
-  }
-
-  function parse(code) {
-    code = prepare(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
-      }
+    else if(isQuote()) { //是否为引号
+      dealQuote()
+      isReg = 1
+      isReturn = 0
+      braceState = 0
     }
-
-    return unique(ret)
-  }
-
-  return {
-    prepare: prepare,
-    parse: parse
-  }
-})()
-
-var parserByLifesinger3 = (function() {
-  var cache
-  var QUOTE_RE = /"(?:\\"|[^"]+)"|'(?:\\'|[^']+)'/g
-  var COMMENT_RE = /\/\*[\S\s]*?\*\/|\/\/.*/mg
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*"(\d+)"\s*\)/g
-  var ID_RE = /^[-_.:\w\d\/]+$/
-
-  function prepare(code) {
-    cache = []
-    code = code
-        .replace(QUOTE_RE, function(m) {
-          return '"' + (cache.push(m.slice(1, -1)) - 1) + '"'
-        })
-        .replace(COMMENT_RE, '')
-    return code
-  }
-
-  function parse(code) {
-    code = prepare(code)
-    var ret = []
-
-    code.replace(REQUIRE_RE, function(match, index) {
-      var str = cache[index]
-      if (ID_RE.test(str)) {
-        ret.push(str)
-      }
-    })
-
-    return unique(ret)
-  }
-
-  return {
-    prepare: prepare,
-    parse: parse
-  }
-})()
-
-var parserByXingrz = (function() {
-
-  var _strings = [];
-
-  var QUOTE_RE = /(['"])((?:\\\1|.)+?)\1/g
-  var BLOCK_COMMENT_RE = /\/\*[\s\S]*?\*\//mg
-  var LINE_COMMENT_RE = /\/\/.*$/mg
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*"(\d+)"\s*\)/g
-  var FILTER_RE = /^[^"'\s\)]+$/
-
-  function prepare(code) {
-    return code
-        .replace(QUOTE_RE, function(match, quote, str, index) {  // extract all strings
-          return '"' + (_strings.push(str) - 1) + '"'
-        })
-        .replace(BLOCK_COMMENT_RE, '') // remove block comments
-        .replace(LINE_COMMENT_RE, '') // remove line comments
-  }
-
-  function parse(code) {
-    var ret = []
-    code = prepare(code)
-    code.replace(REQUIRE_RE, function(match, index) {  // parse 'require()'
-      if (FILTER_RE.test(_strings[index])) {
-        ret.push(_strings[index])
-      }
-    })
-    return unique(ret)
-  }
-
-  return {
-    prepare: prepare,
-    parse: parse
-  }
-})()
-
-var parserByJames = (function() {
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function parse(code) {
-    code = removeComments(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
-      }
-    }
-
-    return unique(ret)
-  }
-
-  // http://james.padolsey.com/javascript/removing-comments-in-javascript/
-  function removeComments(str) {
-    str = ('__' + str + '__').split('');
-    var mode = {
-      singleQuote: false,
-      doubleQuote: false,
-      regex: false,
-      blockComment: false,
-      lineComment: false,
-      condComp: false
-    };
-    for (var i = 0, l = str.length; i < l; i++) {
-
-      if (mode.regex) {
-        if (str[i] === '/' && str[i - 1] !== '\\') {
-          mode.regex = false;
+    else if(peek == '/') { //注释或正则
+      readch()
+      if(peek == '/') { //注释
+        index = s.indexOf('\n', index)
+        if(index == -1) {
+          index = s.length
         }
-        continue;
       }
-
-      if (mode.singleQuote) {
-        if (str[i] === "'" && str[i - 1] !== '\\') {
-          mode.singleQuote = false;
-        }
-        continue;
-      }
-
-      if (mode.doubleQuote) {
-        if (str[i] === '"' && str[i - 1] !== '\\') {
-          mode.doubleQuote = false;
-        }
-        continue;
-      }
-
-      if (mode.blockComment) {
-        if (str[i] === '*' && str[i + 1] === '/') {
-          str[i + 1] = '';
-          mode.blockComment = false;
-        }
-        str[i] = '';
-        continue;
-      }
-
-      if (mode.lineComment) {
-        if (str[i + 1] === '\n' || str[i + 1] === '\r') {
-          mode.lineComment = false;
-        }
-        str[i] = '';
-        continue;
-      }
-
-      if (mode.condComp) {
-        if (str[i - 2] === '@' && str[i - 1] === '*' && str[i] === '/') {
-          mode.condComp = false;
-        }
-        continue;
-      }
-
-      mode.doubleQuote = str[i] === '"';
-      mode.singleQuote = str[i] === "'";
-
-      if (str[i] === '/') {
-
-        if (str[i + 1] === '*' && str[i + 2] === '@') {
-          mode.condComp = true;
-          continue;
-        }
-        if (str[i + 1] === '*') {
-          str[i] = '';
-          mode.blockComment = true;
-          continue;
-        }
-        if (str[i + 1] === '/') {
-          str[i] = '';
-          mode.lineComment = true;
-          continue;
-        }
-        mode.regex = true;
-
-      }
-
-    }
-    return str.join('').slice(2, -2);
-  }
-
-  return {
-    prepare: removeComments,
-    parse: parse
-  }
-})()
-
-var parserByJames2 = (function() {
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-
-  function parse(code) {
-    code = removeComments(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
-      }
-    }
-
-    return unique(ret)
-  }
-
-  // http://james.padolsey.com/javascript/javascript-comment-removal-revisted/
-  function removeComments(str) {
-    var uid = '_' + +new Date(),
-        primatives = [],
-        primIndex = 0;
-
-    return (
-        str
-          /* Remove strings */
-            .replace(/(['"])(\\\1|.)+?\1/g, function(match) {
-              primatives[primIndex] = match;
-              return (uid + '') + primIndex++;
-            })
-
-          /* Remove Regexes */
-            .replace(/([^\/])(\/(?!\*|\/)(\\\/|.)+?\/[gim]{0,3})/g, function(match, $1, $2) {
-              primatives[primIndex] = $2;
-              return $1 + (uid + '') + primIndex++;
-            })
-
-          /*
-           - Remove single-line comments that contain would-be multi-line delimiters
-           E.g. // Comment /* <--
-           - Remove multi-line comments that contain would be single-line delimiters
-           E.g. /* // <--
-           */
-            .replace(/\/\/.*?\/?\*.+?(?=\n|\r|$)|\/\*[\s\S]*?\/\/[\s\S]*?\*\//g, '')
-
-          /*
-           Remove single and multi-line comments,
-           no consideration of inner-contents
-           */
-            .replace(/\/\/.+?(?=\n|\r|$)|\/\*[\s\S]+?\*\//g, '')
-
-          /*
-           Remove multi-line comments that have a replaced ending (string/regex)
-           Greedy, so no inner strings/regexes will stop it.
-           */
-            .replace(RegExp('\\/\\*[\\s\\S]+' + uid + '\\d+', 'g'), '')
-
-          /* Bring back strings & regexes */
-            .replace(RegExp(uid + '(\\d+)', 'g'), function(match, n) {
-              return primatives[n];
-            })
-        );
-
-  }
-
-  return {
-    prepare: removeComments,
-    parse: parse
-  }
-})()
-
-var parserByArmy = (function() {
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function parse(code) {
-    code = removeComments(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
-      }
-    }
-
-    return unique(ret)
-  }
-
-  //http://9911489.k237.opensrs.cn/test.html
-  function removeComments(s) {
-    var index = 0, peek, length = s.length, isReg = true, removeString = false, pos = [0], res = '';
-    while (index < length) {
-      readch();
-      if (isBlank()) {
-      }
-      else if (isQuote()) {
-        dealQuote();
-        isReg = true;
-      }
-      else if (peek == '/') {
-        readch();
-        if (peek == '/') {
-          pos.push(index - 2);
-          index = s.indexOf('\n', index);
-          if (index == -1) index = s.length;
-          pos.push(index);
-          isReg = true;
-        }
-        else if (peek == '*') {
-          pos.push(index - 2);
-          index = s.indexOf('*/', index) + 2;
-          pos.push(index);
-          isReg = true;
-        }
-        else if (isReg) {
-          dealReg();
-          isReg = false;
+      else if(peek == '*') { //注释
+        var i = s.indexOf('\n', index)
+        index = s.indexOf('*/', index)
+        if(index == -1) {
+          index = length
         }
         else {
-          isReg = true;
+          index += 2
+        }
+        if(isReturn && i != -1 && i < index) {
+          braceState = 0
+          isReturn = 0
         }
       }
-      else if (isWord()) {
-        dealWord();
-        isReg = false;
+      else if(isReg) { //正则
+        dealReg()
+        isReg = 0
+        isReturn = 0
+        braceState = 0
       }
       else {
-        isReg = true;
+        index--
+        isReg = 1
+        isReturn = 0
+        braceState = 1
       }
     }
-    pos.push(length);
-    for (index = 0; index < pos.length; index += 2) {
-      res += s.slice(pos[index], pos[index + 1]);
+    else if(isWord()) {
+      dealWord()
     }
-    return res;
-    function readch() {
-      peek = s.charAt(index++);
+    else if(isNumber()) {
+      dealNumber()
+      isReturn = 0
+      braceState = 0
     }
-
-    function isBlank() {
-      return /\s/.test(peek);
+    else if(peek == '(') {
+      parentheseStack.push(parentheseState)
+      isReg = 1
+      isReturn = 0
+      braceState = 1
     }
-
-    function isQuote() {
-      return peek == '"' || peek == "'";
+    else if(peek == ')') {
+      isReg = parentheseStack.pop()
+      isReturn = 0
+      braceState = 0
     }
-
-    function dealQuote() {
-      if (removeString) {
-        pos.push(index - 1);
+    else if(peek == '{') {
+      if(isReturn) {
+        braceState = 1
       }
-      var start = peek;
-      while (index < length) {
-        readch();
-        if (peek == '\\') {
-          index++;
-        }
-        else if (peek == start) {
-          break;
-        }
+      braceStack.push(braceState)
+      isReturn = 0
+      isReg = 1
+    }
+    else if(peek == '}') {
+      braceState = braceStack.pop()
+      isReg = !braceState
+      isReturn = 0
+    }
+    else {
+      var next = s.charAt(index)
+      if(peek == ';') {
+        braceState = 0
       }
-      if (removeString) {
-        pos.push(index);
+      else if(peek == '-' && next == '-'
+        || peek == '+' && next == '+'
+        || peek == '=' && next == '>') {
+        braceState = 0
+        index++
+      }
+      else {
+        braceState = 1
+      }
+      isReg = peek != ']'
+      isReturn = 0
+    }
+  }
+  return res //返回所有依赖
+  function readch() { //前移
+    peek = s.charAt(index++)
+  }
+  function isBlank() {
+    return /\s/.test(peek)
+  }
+  function isQuote() {
+    return peek == '"' || peek == "'"
+  }
+  function dealQuote() {
+    var start = index
+    var c = peek
+    var end = s.indexOf(c, start)
+    if(end == -1) {
+      index = length
+    }
+    else if(s.charAt(end - 1) != '\\') {
+      index = end + 1
+    }
+    else {
+      while(index < length) {
+        readch()
+        if(peek == '\\') {
+          index++
+        }
+        else if(peek == c) {
+          break
+        }
       }
     }
-
-    function dealReg() {
-      index--;
-      pos.push(index - 1);
-      while (index < length) {
-        readch();
-        if (peek == '\\') {
-          index++;
-        }
-        else if (peek == '/') {
-          break;
-        }
-        else if (peek == '[') {
-          for (; ;) {
-            readch();
-            if (peek == '\\') {
-              index++;
-            }
-            else if (peek == ']') {
-              break;
-            }
+    if(modName) {
+      //maybe substring is faster  than slice .
+      res.push(s.substring(start, index - 1))
+      modName = 0
+    }
+  }
+  function dealReg() {
+    index--
+    while(index < length) {
+      readch()
+      if(peek == '\\') {
+        index++
+      }
+      else if(peek == '/') {
+        break
+      }
+      else if(peek == '[') {
+        while(index < length) {
+          readch()
+          if(peek == '\\') {
+            index++
+          }
+          else if(peek == ']') {
+            break
           }
         }
       }
-      pos.push(index);
-    }
-
-    function isWord() {
-      return /[\w$.]/.test(peek);
-    }
-
-    function dealWord() {
-      var r = /^[\w$.]+/.exec(s.slice(index - 1))[0];
-      removeString = r != 'require';
-      index += r.length - 1;
     }
   }
-
-  return {
-    prepare: removeComments,
-    parse: parse
+  function isWord() { //是否为一个词
+    return /[a-z_$]/i.test(peek)
   }
-})()
-
-var parserByHaxAndLuolonghao = (function() {
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function parse(code) {
-    code = removeComments(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
-      }
+  function dealWord() { //是否是关键词
+    var s2 = s.slice(index - 1)
+    var r = /^[\w$]+/.exec(s2)[0]
+    parentheseState = {
+      'if': 1,
+      'for': 1,
+      'while': 1,
+      'with': 1
+    }[r]
+    isReg = {
+      'break': 1,
+      'case': 1,
+      'continue': 1,
+      'debugger': 1,
+      'delete': 1,
+      'do': 1,
+      'else': 1,
+      'false': 1,
+      'if': 1,
+      'in': 1,
+      'instanceof': 1,
+      'return': 1,
+      'typeof': 1,
+      'void': 1
+    }[r]
+    isReturn = r == 'return'
+    braceState = {
+      'instanceof': 1,
+      'delete': 1,
+      'void': 1,
+      'typeof': 1,
+      'return': 1
+    }.hasOwnProperty(r)
+    modName = /^require\s*(?:\/\*[\s\S]*?\*\/\s*)?\(\s*(['"]).+?\1\s*[),]/.test(s2)
+    if(modName) {
+      r = /^require\s*(?:\/\*[\s\S]*?\*\/\s*)?\(\s*['"]/.exec(s2)[0]
+      index += r.length - 2
     }
-
-    return unique(ret)
-  }
-
-  // http://hax.iteye.com/blog/181358
-  // https://github.com/seajs/seajs/issues/478#issuecomment-11492343
-  function removeComments(code) {
-    return code.replace(/"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|([^\\])([/][*][\S\s]*?(?:[*][/]|$)|[/][/].*)/g, function($0, $1) {
-      return $1 || $0;
-    });
-  }
-
-  return {
-    prepare: removeComments,
-    parse: parse
-  }
-})()
-
-var parserByLuolonghao = (function() {
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function parse(code) {
-    code = removeComments(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
-      }
-    }
-
-    return unique(ret)
-  }
-
-  // https://github.com/seajs/seajs/issues/478#issuecomment-11524485
-  function removeComments(code) {
-    return code.replace(/"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|[/][*][\S\s]*?(?:[*][/]|$)|[/](?:\\[/]|[^/])+[/]|[/][/].*/g, function(match) {
-      return /^([/][*]|[/][/])/.test(match) ? '' : match;
-    });
-  }
-
-  return {
-    prepare: removeComments,
-    parse: parse
-  }
-})()
-
-var parserByLuolonghao2 = (function() {
-  var COMMENT_RE = /"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|\/\*[\S\s]*?(?:\*\/|$)|\/(?:\\\/|[^/])+\/|\/\/.*/g
-  var COMMENT_PREFIX_RE = /^\/(\*|\/)/
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function parse(code) {
-    code = removeComments(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
-      }
-    }
-
-    return unique(ret)
-  }
-
-  function removeComments(code) {
-    return code.replace(COMMENT_RE, function(match) {
-      return COMMENT_PREFIX_RE.test(match) ? '' : match
-    })
-  }
-
-  return {
-    prepare: removeComments,
-    parse: parse
-  }
-})()
-
-var parserByLuolonghaoAndLifesinger = (function() {
-  var NOISE_RE = /"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|\/\*[\S\s]*?\*\/|\/(?:\\\/|[^/])+\/|\/\/.*/g
-  var STR_RE = /^["']/
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function parse(code) {
-    code = clean(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      ret.push(match[2])
-    }
-
-    return unique(ret)
-  }
-
-  function clean(code) {
-    return code.replace(NOISE_RE, function(m) {
-      return STR_RE.test(m) ? m : ''
-    })
-  }
-
-  return {
-    prepare: clean,
-    parse: parse
-  }
-})()
-
-var parserByYessky = (function() {
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function parse(code) {
-    code = removeComments(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
-      }
-    }
-
-    return unique(ret)
-  }
-
-  // https://github.com/seajs/seajs/issues/478#issuecomment-11526333
-  function removeComments(code) {
-    // multi-line comments
-    code = code.replace(/^\s*\/\*[\s\S]*?\*\/\s*(\n|\r|\f)?/mg, '$1');
-
-    // single-line comments starts with '//'
-    code = code.replace(/^\s*\/\/[^\r\n\f]*?(\r|\n|\f|$)/mg, '');
-
-    // single-line comments not starts with '//'
-    code = code.replace(/(;|,|}|])\s*\/\/[^\r\n\f]*?(\r|\n|\f|$)/mg, '$1$2');
-
-    return code;
-  }
-
-  return {
-    prepare: removeComments,
-    parse: parse
-  }
-})()
-
-var parserByZiyunfei = (function() {
-  var REQUIRE_RE = /(?:^|[^.$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
-
-  function parse(code) {
-    code = removeComments(code)
-
-    var ret = [], match
-    REQUIRE_RE.lastIndex = 0
-
-    while ((match = REQUIRE_RE.exec(code))) {
-      if (match[2]) {
-        ret.push(match[2])
-      }
-    }
-
-    return unique(ret)
-  }
-
-  // https://github.com/seajs/seajs/issues/478#issuecomment-11491575
-  function removeComments(input) {
-    var i = 0;
-    var left = false;
-    var length = input.length;
-    var output = "";
-    while (i < input.length) {
-      if (input[i] === "/") {
-        if (left === true && input[i + 1] !== "/") {
-          left = false;
-          putstr(input[i++]);
-          continue;
-        }
-        if (input[++i] === "*") {
-          while (input[++i] + input[i + 1] != "*/" && i < length) {}
-          i++;
-          i++;
-        } else if (input[i] === "/") {
-          while ((input[++i] !== "\n" || input[i - 1] === "\\") && i < length) {}
-        } else if (input[i]) {
-          putstr("/" + input[i]);
-          while ((input[++i] !== "/" || input[i - 1] === "\\") && i < length) {
-            putstr(input[i]);
-          }
-          left = true;
-        }
-      } else if (input[i] === "'" || input[i] === '"') {
-        var quote = input[i];
-        putstr(quote);
-        while ((input[++i] != quote || input[i - 1] === "\\") && i < length) {
-          putstr(input[i]);
-        }
-      } else if (input[i] === "\n") {
-        left = false;
-      }
-      putstr(input[i++])
-    }
-    return output;
-
-    function putstr(c) {
-      output += c || "";
+    else {
+      index += /^[\w$]+(?:\s*\.\s*[\w$]+)*/.exec(s2)[0].length - 1
     }
   }
-
-  return {
-    prepare: removeComments,
-    parse: parse
+  function isNumber() {
+    return /\d/.test(peek)
+      || peek == '.' && /\d/.test(s.charAt(index))
   }
-})()
-
+  function dealNumber() {
+    var s2 = s.slice(index - 1)
+    var r
+    if(peek == '.') {
+      r = /^\.\d+(?:E[+-]?\d*)?\s*/i.exec(s2)[0]
+    }
+    else if(/^0x[\da-f]*/i.test(s2)) {
+      r = /^0x[\da-f]*\s*/i.exec(s2)[0]
+    }
+    else {
+      r = /^\d+\.?\d*(?:E[+-]?\d*)?\s*/i.exec(s2)[0]
+    }
+    index += r.length - 1
+    isReg = 0
+  }
+}
 </script>
 
 <h3>References</h3>
