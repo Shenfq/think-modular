@@ -476,7 +476,7 @@
     var index = 0, peek, length = s.length, isReg = 1, modName = 0, res = []
     var parentheseState = 0, parentheseStack = []
     var braceState, braceStack = [], isReturn
-    while(index < length) {
+    while(index < length) {//状态机
       readch()
       if(isBlank()) { //是否为空格
         if(isReturn && (peek == '\n' || peek == '\r')) {
@@ -526,25 +526,25 @@
         }
       }
       else if(isWord()) {
-        dealWord()
+        dealWord() //处理字符
       }
       else if(isNumber()) {
-        dealNumber()
+        dealNumber() //处理数字
         isReturn = 0
         braceState = 0
       }
       else if(peek == '(') {
-        parentheseStack.push(parentheseState)
+        parentheseStack.push(parentheseState) //小括号开始
         isReg = 1
         isReturn = 0
         braceState = 1
       }
       else if(peek == ')') {
-        isReg = parentheseStack.pop()
+        isReg = parentheseStack.pop() //小括号结束
         isReturn = 0
         braceState = 0
       }
-      else if(peek == '{') {
+      else if(peek == '{') { //大括号开始
         if(isReturn) {
           braceState = 1
         }
@@ -552,12 +552,12 @@
         isReturn = 0
         isReg = 1
       }
-      else if(peek == '}') {
+      else if(peek == '}') { //大括号结束
         braceState = braceStack.pop()
         isReg = !braceState
         isReturn = 0
       }
-      else {
+      else { //处理其他条件
         var next = s.charAt(index)
         if(peek == ';') {
           braceState = 0
@@ -585,17 +585,17 @@
     function isQuote() {
       return peek == '"' || peek == "'"
     }
-    function dealQuote() {
+    function dealQuote() { //处理双引号
       var start = index
       var c = peek
       var end = s.indexOf(c, start)
-      if(end == -1) {
+      if(end == -1) { //如果 " 或 ' 没有结束，直接移动index到最后
         index = length
       }
-      else if(s.charAt(end - 1) != '\\') {
+      else if(s.charAt(end - 1) != '\\') {//如果第二个引号前没有斜杠，直接跳到字符串之后
         index = end + 1
       }
-      else {
+      else { //表示没有匹配到完整的字符串，继续向后匹配
         while(index < length) {
           readch()
           if(peek == '\\') {
@@ -606,7 +606,7 @@
           }
         }
       }
-      if(modName) {
+      if(modName) {//如果该字符串是传入require方法，获取字符串内容为模块名
         //maybe substring is faster  than slice .
         res.push(s.substring(start, index - 1))
         modName = 0
@@ -638,9 +638,9 @@
     function isWord() { //是否为一个词
       return /[a-z_$]/i.test(peek)
     }
-    function dealWord() { //是否是关键词
+    function dealWord() { //处理是单词
       var s2 = s.slice(index - 1)
-      var r = /^[\w$]+/.exec(s2)[0]
+      var r = /^[\w$]+/.exec(s2)[0] //通过正则，取出单词
       parentheseState = {
         'if': 1,
         'for': 1,
