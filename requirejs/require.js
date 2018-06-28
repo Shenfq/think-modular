@@ -820,7 +820,6 @@ var requirejs, require, define;
 
 			load: function () {
 				var url = this.map.url;
-				console.log(this.map.id + ' is loading!');
 				//Regular dependency.
 				if (!urlFetched[url]) {
 					urlFetched[url] = true;
@@ -1190,7 +1189,7 @@ var requirejs, require, define;
 			}
 		};
 
-		function callGetModule(args) { console.log(args);
+		function callGetModule(args) {
 			//跳过已经加载的模块
 			if (!hasProp(defined, args[0])) {
 				getModule(makeModuleMap(args[0], null, true)).init(args[1], args[2]);
@@ -1560,7 +1559,6 @@ var requirejs, require, define;
 			 * @param {String} moduleName the name of the module to potentially complete.
 			 */
 			completeLoad: function (moduleName) {
-				console.log(moduleName + ' complete load!');
 				var found, args, mod,
 					shim = getOwn(config.shim, moduleName) || {},
 					shExports = shim.exports;
