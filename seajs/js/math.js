@@ -1,3 +1,4 @@
+console.log('loading math')
 define('math', function (require, exports, module) {
   require('underscore/underscore')
   var _ = window._

@@ -141,7 +141,7 @@
     var last = path.length - 1
     var lastC = path.charCodeAt(last)
 
-    // 如果uri已 # 结尾，去除#
+    // 如果uri已 # 结尾，去除 #
     if (lastC === 35 /* "#" */) {
       return path.substring(0, last)
     }
@@ -761,7 +761,7 @@
       var count = 0
       for (var j = 0; j < len; j++) {
         var m = mod.deps[mod.dependencies[j]] //取出依赖的模块
-        // If the module is unload and unused in the entry, pass entry to it
+        // 如果模块未加载，并且在entry中未使用，将entry传递给依赖
         if (m.status < STATUS.LOADED && !entry.history.hasOwnProperty(m.uri)) {
           entry.history[m.uri] = true
           count++
@@ -772,6 +772,7 @@
         }
       }
       // If has passed the entry to it's dependencies, modify the entry's count and del it in the module
+      // 如果过已经将entry传递给了依赖项，修改依赖项的count，并移除entry模块
       if (count > 0) {
         entry.remain += count - 1
         mod._entry.shift()
@@ -955,7 +956,7 @@
       crossorigin: isFunction(data.crossorigin) ? data.crossorigin(requestUri) : data.crossorigin
     })
 
-    if (!emitData.requested) {
+    if (!emitData.requested) { //发送请求加载js文件
       requestCache ?
         requestCache[emitData.requestUri] = sendRequest :
         sendRequest()
@@ -1075,7 +1076,7 @@
   }
 
   // 该方法用来加载一个匿名模块
-  Module.use = function (ids, callback, uri) {
+  Module.use = function (ids, callback, uri) { //如果是通过seajs.use调用，uri是自动生成的
     var mod = Module.get(uri, isArray(ids) ? ids : [ids]) //获取或新建模块
 
     mod._entry.push(mod) //放入入口模块中

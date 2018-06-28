@@ -1,9 +1,9 @@
 define(function (require, exports, module) {
   require('jquery')
   var $ = window.$
+  console.log('loaded jquery')
   var math = require('./math')
-  
-  console.log(math)
+  console.log('loaded math')
 
   $(function () {
     var result = math.add(4, 5)
