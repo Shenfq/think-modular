@@ -970,7 +970,7 @@
       delete fetchingList[requestUri]
       fetchedList[requestUri] = true //状态置为加载完毕
 
-      // Save meta data of anonymous module
+      // 保存元数据到匿名模块，uri为请求js的uri
       if (anonymousMeta) {
         Module.save(uri, anonymousMeta)
         anonymousMeta = null
@@ -1051,7 +1051,7 @@
     emit("define", meta)
 
     meta.uri ? Module.save(meta.uri, meta) :
-      // Save information for "saving" work in the script onload event
+      // 在脚本加载完毕的onload事件进行save
       anonymousMeta = meta
   }
 
