@@ -13,4 +13,6 @@ define(function (require, exports, module) {
 
     $('#app').html('has loaded!')
   })
+
+  module.exports = 'main-module'
 })

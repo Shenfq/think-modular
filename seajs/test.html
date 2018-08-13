@@ -23,7 +23,9 @@
         }
       });
 
-      seajs.use('main')
+      seajs.use('main', function (main) {
+        alert(main)
+      })
     </script>
 </body>
 

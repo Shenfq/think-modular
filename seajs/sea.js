@@ -795,7 +795,7 @@
     // Emit `load` event for plugins such as combo plugin
     var uris = mod.resolve()
     emit("load", uris)
-
+    
     for (var i = 0, len = uris.length; i < len; i++) {
       mod.deps[mod.dependencies[i]] = Module.get(uris[i])
     }
@@ -1164,13 +1164,13 @@
   seajs.config = function(configData) {
 
     for (var key in configData) {
-      var curr = configData[key]
-      var prev = data[key]
+      var curr = configData[key] // 获取当前配置
+      var prev = data[key] // 获取之前的配置
 
       // Merge object config such as alias, vars
-      if (prev && isObject(prev)) { //如果之前已经设置过，将两个值进行merge
+      if (prev && isObject(prev)) { // 如果之前已经设置过，将两个值进行merge
         for (var k in curr) {
-          prev[k] = curr[k]
+          prev[k] = curr[k] // 用新值覆盖旧值，旧值保留不变
         }
       }
       else {
