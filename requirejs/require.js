@@ -33,7 +33,7 @@ var requirejs, require, define;
 		cfg = {},
 		globalDefQueue = [],
 		useInteractive = false;
-	
+
 	//Could match something like ')//comment', do not lose the prefix to comment.
 	function commentReplace(match, singlePrefix) {
 		return singlePrefix || '';
@@ -218,7 +218,7 @@ var requirejs, require, define;
 			bundlesMap = {},
 			requireCounter = 1,
 			unnormalizedCounter = 1;
-		
+
 		/**
 		 * 去除无用的 . 和 .. 路径
 		 * Trims the . and .. from an array of path segments.
@@ -715,7 +715,7 @@ var requirejs, require, define;
 
 			inCheckLoaded = false;
 		}
-		
+
 		//模块加载器
 		Module = function (map) {
 			this.events = getOwn(undefEvents, map.id) || {};
@@ -726,7 +726,7 @@ var requirejs, require, define;
 			this.depMatched = [];
 			this.pluginMaps = {};
 			this.depCount = 0;
-			
+
 			/* this.exports this.factory
 			   this.depMaps = [],
 			   this.enabled, this.fetched
@@ -736,7 +736,7 @@ var requirejs, require, define;
 		Module.prototype = {
 			init: function (depMaps, factory, errback, options) { //模块加载时的入口
 				options = options || {};
-				
+
 				//Do not do more inits if already done. Can happen if there
 				//are multiple define calls for the same module. That is not
 				//a normal, common case, but it is also not unexpected.
@@ -776,7 +776,7 @@ var requirejs, require, define;
 				//the dependencies are not known until init is called. So
 				//if enabled previously, now trigger dependencies as enabled.
 				if (options.enabled || this.enabled) {
-					//Enable this module and dependencies. 
+					//Enable this module and dependencies.
 					//Will call this.check()
 					this.enable();
 				} else {
@@ -1113,7 +1113,7 @@ var requirejs, require, define;
 							false,
 							!this.skipMap);
 						this.depMaps[i] = depMap; //获取的依赖映射
-						
+
 						handler = getOwn(handlers, depMap.id);
 
 						if (handler) {
@@ -1164,7 +1164,7 @@ var requirejs, require, define;
 				}));
 
 				this.enabling = false;
-				
+
 				this.check();
 			},
 
@@ -1273,7 +1273,7 @@ var requirejs, require, define;
 			 */
 			configure: function (cfg) {
 				//确保baseUrl以 / 结尾
-				if (cfg.baseUrl) { 
+				if (cfg.baseUrl) {
 					//所有模块的根路径，
 					//默认为requirejs的文件所在路径，
 					//如果设置了data-main，则与data-main一致
@@ -1562,9 +1562,9 @@ var requirejs, require, define;
 				var found, args, mod,
 					shim = getOwn(config.shim, moduleName) || {},
 					shExports = shim.exports;
-					
+
 				takeGlobalQueue();
-				
+
 				while (defQueue.length) {
 					args = defQueue.shift();
 					if (args[0] === null) {
@@ -1588,7 +1588,7 @@ var requirejs, require, define;
 				//Do this after the cycle of callGetModule in case the result
 				//of those calls/init calls changes the registry.
 				mod = getOwn(registry, moduleName);
-				
+
 				if (!found && !hasProp(defined, moduleName) && mod && !mod.inited) {
 					if (config.enforceDefine && (!shExports || !getGlobal(shExports))) {
 						if (hasPathFallback(moduleName)) {
@@ -1777,7 +1777,7 @@ var requirejs, require, define;
 		if (config && config.context) {
 			contextName = config.context;
 		}
-		
+
 		context = getOwn(contexts, contextName);  //获取默认环境
 		if (!context) {
 			context = contexts[contextName] = req.s.newContext(contextName); //创建一个名为'_'的环境名
