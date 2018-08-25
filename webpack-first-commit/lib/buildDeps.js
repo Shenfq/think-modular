@@ -30,16 +30,20 @@ module.exports = function buildDeps(context, mainModule, options, callback) {
 			callback(err);
 			return;
 		}
-		mainModuleId = id;
+    mainModuleId = id;
 		buildTree();
 	});
 	function buildTree() {
 		addChunk(depTree, depTree.modulesById[mainModuleId], options);
 		for(var chunkId in depTree.chunks) {
-			removeParentsModules(depTree, depTree.chunks[chunkId]);
-			removeChunkIfEmpty(depTree, depTree.chunks[chunkId]);
+      // 移除已经存在与父chunk的module
+      removeParentsModules(depTree, depTree.chunks[chunkId]);
+      // 移除空的chunk
+      removeChunkIfEmpty(depTree, depTree.chunks[chunkId]);
+      // 检查chunk下的module排序
 			checkObsolete(depTree, depTree.chunks[chunkId]);
-		}
+    }
+    // console.log(JSON.stringify(depTree, null, '  '))
 		callback(null, depTree);
 	}
 }
@@ -50,12 +54,12 @@ function addModule(depTree, context, module, options, callback) {
 			callback(err);
 			return;
 		}
-		if(depTree.modules[filename]) {
+		if(depTree.modules[filename]) { // 加载过的模块不再重复加载
 			callback(null, depTree.modules[filename].id);
 		} else {
 			var module = depTree.modules[filename] = {
-				id: depTree.nextModuleId++,
-				filename: filename
+				id: depTree.nextModuleId++, // 模块id从0开始，每加载一个模块 + 1
+				filename: filename // 依据一定规则获取的有效的模块的绝对地址
 			};
 			depTree.modulesById[module.id] = module;
 			fs.readFile(filename, "utf-8", function(err, source) {
@@ -63,7 +67,7 @@ function addModule(depTree, context, module, options, callback) {
 					callback(err);
 					return;
 				}
-				var deps = parse(source); // 解析ast，得到全部的依赖项
+        var deps = parse(source); // 解析ast，得到全部的依赖项
 				module.requires = deps.requires || [];
 				module.asyncs = deps.asyncs || [];
 				module.source = source;
@@ -72,7 +76,9 @@ function addModule(depTree, context, module, options, callback) {
 				function add(r) {
 					requires[r.name] = requires[r.name] || [];
 					requires[r.name].push(r);
-				}
+        }
+        // 将所有依赖文件存入requires对象中，
+        // 结构： 文件名: [ ...在文件中的位置 ]
 				if(module.requires)
 					module.requires.forEach(add);
 				if(module.asyncs)
@@ -82,21 +88,21 @@ function addModule(depTree, context, module, options, callback) {
 						if(c.asyncs)
 							c.asyncs.forEach(addContext);
 					});
-				requiresNames = Object.keys(requires);
-				var count = requiresNames.length;
+        requiresNames = Object.keys(requires); // 所有依赖文件名
+				var count = requiresNames.length; // 依赖文件的总数
 				var errors = [];
 				if(requiresNames.length)
-					requiresNames.forEach(function(moduleName) {
+					requiresNames.forEach(function(moduleName) { // 加载所有依赖文件
 						addModule(depTree, path.dirname(filename), moduleName, options, function(err, moduleId) {
 							if(err) {
 								errors.push(err+"\n @ " + filename + " (line " + requires[moduleName][0].line + ", column " + requires[moduleName][0].column + ")");
 							} else {
 								requires[moduleName].forEach(function(requireItem) {
-									requireItem.id = moduleId;
+									requireItem.id = moduleId; // 缓存模块id
 								});
 							}
 							count--;
-							if(count === 0) {
+							if(count === 0) { // 所有依赖文件加载完毕
 								if(errors.length) {
 									callback(errors.join("\n"));
 								} else {
@@ -114,6 +120,7 @@ function addModule(depTree, context, module, options, callback) {
 	});
 }
 
+// 构建一个`块`，webpack中一个chunk是多个module的集合
 function addChunk(depTree, chunkStartpoint, options) {
 	var chunk = {
 		id: depTree.nextChunkId++,
@@ -121,8 +128,9 @@ function addChunk(depTree, chunkStartpoint, options) {
 		context: chunkStartpoint
 	};
 	depTree.chunks[chunk.id] = chunk;
-	if(chunkStartpoint) {
-		chunkStartpoint.chunkId = chunk.id;
+	if(chunkStartpoint) { // 表示当前chunk的第一个加载的module，一般就是webpack的entry
+    chunkStartpoint.chunkId = chunk.id;
+    // 将模块添加到chunk中
 		addModuleToChunk(depTree, chunkStartpoint, chunk.id, options);
 	}
 	return chunk;
@@ -132,13 +140,17 @@ function addModuleToChunk(depTree, context, chunkId, options) {
 	context.chunks = context.chunks || [];
 	if(context.chunks.indexOf(chunkId) === -1) {
 		context.chunks.push(chunkId);
-		if(context.id !== undefined)
+    if(context.id !== undefined)
+      // 将chunk包含的module的状态改为include
 			depTree.chunks[chunkId].modules[context.id] = "include";
 		if(context.requires) {
+      // 将入口模块所有的同步依赖模块也添加到该chunk
+      // 只有requires会被添加，asyncs不会添加
 			context.requires.forEach(function(requireItem) {
 				addModuleToChunk(depTree, depTree.modulesById[requireItem.id], chunkId, options);
 			});
-		}
+    }
+    // 所有异步加载模块放入子chunk中
 		if(context.asyncs) {
 			context.asyncs.forEach(function(context) {
 				var subChunk
@@ -158,11 +170,12 @@ function removeParentsModules(depTree, chunk) {
 	if(!chunk.parents) return;
 	for(var moduleId in chunk.modules) {
 		var inParent = false;
-		chunk.parents.forEach(function(parentId) {
-			if(depTree.chunks[parentId].modules[moduleId])
-				inParent = true;
+    chunk.parents.forEach(function(parentId) {
+      if(depTree.chunks[parentId].modules[moduleId])
+        inParent = true;
 		});
 		if(inParent) {
+      // 如果模块已经存在与父chunk，修改状态
 			chunk.modules[moduleId] = "in-parent";
 		}
 	}
@@ -191,9 +204,9 @@ function checkObsolete(depTree, chunk) {
 	}
 	if(modules.length === 0) return;
 	modules.sort();
-	var moduleString = modules.join(" ");
+  var moduleString = modules.join(" ");
 	if(depTree.chunkModules[moduleString]) {
-		chunk.equals = depTree.chunkModules[moduleString];
+    chunk.equals = depTree.chunkModules[moduleString];
 		if(chunk.context)
 			chunk.context.chunkId = chunk.equals;
 	} else

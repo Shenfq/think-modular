@@ -28,12 +28,14 @@ module.exports = function(module) {
 				});
 			}
 		});
-	}
+  }
+  // 对replaces进行排序，将from大的排在最前面
 	replaces.sort(function(a, b) {
 		return b.from - a.from;
 	});
 	var source = module.source;
-	var result = [source];
+  var result = [source];
+  // 将require的模块名替换成模块id
 	replaces.forEach(function(repl) {
 		var remSource = result.shift();
 		result.unshift(

@@ -2,6 +2,7 @@
 
 var path = require("path");
 var fs = require("fs");
+// 设置配置参数
 var argv = require("optimist")
 	.usage("Usage: $0 <input> <output>")
 

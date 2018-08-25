@@ -37,6 +37,8 @@
 /******/({a:".output.js",b:"webpackJsonp",c:"",
 /******/0: function(module, exports, require) {
 
+/*** E:\Project\FE\module\webpack-first-commit\example\example.js ***/
+
 var a = require(1);
 var b = require(2);
 require.ensure(1, function (require) {
@@ -49,11 +51,15 @@ require.ensure(1, function (require) {
 /******/
 /******/1: function(module, exports, require) {
 
+/*** E:\Project\FE\module\webpack-first-commit\example\deps\a.js ***/
+
 // module a
 
 /******/},
 /******/
 /******/2: function(module, exports, require) {
+
+/*** E:\Project\FE\module\webpack-first-commit\example\deps\b.js ***/
 
 // module b
 

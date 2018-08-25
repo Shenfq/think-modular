@@ -3,7 +3,9 @@ var path = require("path");
 var writeChunk = require("./writeChunk");
 var fs = require("fs");
 
+// 异步加载模版
 var templateAsync = require("fs").readFileSync(path.join(__dirname, "templateAsync.js"));
+// 单文件模版
 var templateSingle = require("fs").readFileSync(path.join(__dirname, "templateSingle.js"));
 /*
 	webpack(context, moduleName, options, callback);
@@ -62,7 +64,8 @@ module.exports = function(context, moduleName, options, callback) {
 			callback(err);
 			return;
 		}
-		var buffer = [];
+    var buffer = [];
+    // 通过depTree生成打包后的代码
 		if(options.output) {
 			if(!options.outputJsonpFunction)
 				options.outputJsonpFunction = "webpackJsonp" + (options.libary  || "");
@@ -77,7 +80,7 @@ module.exports = function(context, moduleName, options, callback) {
 			var fileSizeMap = {};
 			var chunksCount = 0;
 			for(var chunkId in depTree.chunks) {
-				var chunk = depTree.chunks[chunkId];
+        var chunk = depTree.chunks[chunkId];
 				if(chunk.empty) continue;
 				if(chunk.equals !== undefined) continue;
 				chunksCount++;
@@ -85,7 +88,7 @@ module.exports = function(context, moduleName, options, callback) {
 					chunk.id === 0 ? options.output : chunk.id + options.outputPostfix);
 				buffer = [];
 				if(chunk.id === 0) {
-					if(options.libary) {
+					if(options.libary) { // 如果打包后是一个库，可以给这个库暴露一个全局对象
 						buffer.push("/******/var ");
 						buffer.push(options.libary);
 						buffer.push("=\n");
@@ -103,17 +106,17 @@ module.exports = function(context, moduleName, options, callback) {
 						buffer.push(templateSingle);
 						buffer.push("/******/({\n");
 					}
-				} else {
+				} else { // 异步加载的chunk
 					buffer.push("/******/");
 					buffer.push(options.outputJsonpFunction);
 					buffer.push("(");
 					buffer.push(chunk.id);
 					buffer.push(", {\n");
 				}
-				buffer.push(writeChunk(depTree, chunk, options));
+				buffer.push(writeChunk(depTree, chunk, options)); // 写入chunk
 				buffer.push("/******/})");
 				buffer = buffer.join("");
-				if(options.minimize) buffer = uglify(buffer, filename);
+				if(options.minimize) buffer = uglify(buffer, filename); // 是否进行文件压缩
 				fs.writeFile(filename, buffer, "utf-8", function(err) {
 					if(err) throw err;
 				});
@@ -139,7 +142,7 @@ module.exports = function(context, moduleName, options, callback) {
 			buffer.modulesFirstChunk = sum;
 			buffer.fileSizes = fileSizeMap;
 			callback(null, buffer);
-		} else {
+		} else { // 不进行代码分割
 			if(options.libary) {
 				buffer.push("/******/var ");
 				buffer.push(options.libary);

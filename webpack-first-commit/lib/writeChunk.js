@@ -16,7 +16,7 @@ module.exports = function(depTree, chunk, options) {
 		buffer.push("/******/");
 		buffer.push(moduleId);
 		buffer.push(": function(module, exports, require) {\n\n");
-		if(options.includeFilenames) {
+		if(options.includeFilenames) { // 添加注释：文件绝对路径
 			buffer.push("/*** ");
 			buffer.push(module.filename);
 			buffer.push(" ***/\n\n");
