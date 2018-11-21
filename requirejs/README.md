@@ -239,7 +239,7 @@ s = req.s = {
 
 继续按照之前`req(cfg);`的逻辑来走，根据传入的cfg，会调用`context.configure(config);`，而这个context就是之前说的`requirejs`三部分中的第二个部分的`newContext`函数创建的，创建得到的context对象会放入全局的contexts对象中。我们可以在控制台打印contexts对象，看到里面其实只有一个名为`'_'`的context，这是`requrejs`默认指定的上下文。
 
-![上下文对象](http://ovdk1wiaq.bkt.clouddn.com/17-11-19/90660695.jpg)
+![上下文对象](http://file.shenfq.com/17-11-19/90660695.jpg)
 
 newContext函数中有许多的局部变量用来缓存一些已经加载的模块，还有一个模块加载器（Module），这个后面都会用到。还是先看调用的configure方法：
 
@@ -340,18 +340,18 @@ req.nextTick = typeof setTimeout !== 'undefined' ? function (fn) {
 我也很费解，为什么要把一些主逻辑放入到一个定时器中，这样所有的加载都会放到下一个任务队列进行。查看了requirejs的版本迭代，发现nextTick是在2.10这个版本加入的，之前也没有这个逻辑。
 而且就算我把requirejs源码中的nextTick这段逻辑去除，代码也能正常运行。
 
-![去除nextTick](http://ovdk1wiaq.bkt.clouddn.com/17-11-19/29999251.jpg)
+![去除nextTick](http://file.shenfq.com/17-11-19/29999251.jpg)
 
 > tips:                
 这里的setTimeout之所以设置为4ms，是因为html5规范中规定了，setTimeout的最小延迟时间（`DOM_MIN_TIMEOUT_VALUE`）时，这个时间就是4ms。但是在2010年之后，所有浏览器的实现都遵循这个规定，2010年之前为10ms。
     
-![html5相关规范](http://ovdk1wiaq.bkt.clouddn.com/17-11-19/28482945.jpg)
+![html5相关规范](http://file.shenfq.com/17-11-19/28482945.jpg)
     
 后来参考了网络上其他博客的一些想法，有些人认为设置setTimeout来加载模块是为了让模块的加载是按照顺序执行的，~~这个目前我也没研究透彻，先设个`todo`在这里,哈哈哈~~。
 
 终于在[requirejs的wiki](https://github.com/requirejs/requirejs/wiki/Upgrading-to-RequireJS-2.1)上看到了相关文档，官方说法是为了让模块的加载异步化，为了防止一些细微的bug（具体是什么bug，还不是很清楚）。
 
-![requirejs wiki](http://ovdk1wiaq.bkt.clouddn.com/17-11-19/39872244.jpg)
+![requirejs wiki](http://file.shenfq.com/17-11-19/39872244.jpg)
 
 好了，还是继续来看`requirejs`的源码吧。在nextTick中，首先使用makeModuleMap来构造了一个模块映射，
 然后立刻通过getModule新建了一个模块加载器。
@@ -451,7 +451,7 @@ requireMod.init(deps, callback, errback, {
 
 拿到创建的模块加载器之后，立即调用了init方法。init方法中又调用了enable方法，enable方法中为所有的depMap又重新创建了一个模块加载器，并调用了依赖项的模块加载器的enable方法，最后调用check方法，check方法又马上调用了fetch方法，fatch最后调用的是load方法，load方法迅速调用了context.load方法。千言万语不如画张图。
 
-![Module模块加载](http://ovdk1wiaq.bkt.clouddn.com/17-11-20/1196893.jpg)
+![Module模块加载](http://file.shenfq.com/17-11-20/1196893.jpg)
 
 确实这一块的逻辑很绕，中间每个方法都对一些作用域内的参数有一些修改，先只了解大致流程，后面慢慢讲。
 这里重点看下req.load方法，这个方法是所有模块进行加载的方法。
@@ -523,7 +523,7 @@ req.load = function (context, moduleName, url) { //用来进行js模块加载的
 requirejs加载模块的方式是通过创建script标签进行加载，并且将创建的script标签插入到head中。而且还支持在webwork中使用，在webWorker使用`importScripts()`来进行模块的加载。
 
 最后可以看到head标签中多了个script：
-![require运行之后的head标签](http://ovdk1wiaq.bkt.clouddn.com/17-11-20/84154956.jpg)
+![require运行之后的head标签](http://file.shenfq.com/17-11-20/84154956.jpg)
 
 
 ## 使用define定义一个模块
