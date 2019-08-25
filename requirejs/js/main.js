@@ -10,8 +10,7 @@ require.config({
     }
 });
 
-
-/* require(['jquery', 'math'], function ($, math) {
+require(['jquery', 'math'], function ($, math) {
     $(function () {
         var result = math.add(4, 5);
         console.log(result);
@@ -20,9 +19,10 @@ require.config({
 
         $('#app').html('has loaded!');
     })
-}); */
+});
 
-/* define(['jquery', 'math'], function ($, math) {
+/* 
+define(['jquery', 'math'], function ($, math) {
     $(function () {
         var result = math.add(4, 5);
         console.log(result);
@@ -33,6 +33,8 @@ require.config({
     })
 });
  */
+
+/* 
 define(function (require, exports, module) {
     console.log('start')
     var $ = require('jquery');
@@ -48,3 +50,4 @@ define(function (require, exports, module) {
         $('#app').html('has loaded!');
     })
 });
+ */

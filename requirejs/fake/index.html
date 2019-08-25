@@ -8,7 +8,52 @@
 </head>
 <body>
   <div id="app"></div>
-  <script src="require.js"></script>
+  <!-- <script src="require.js"></script> -->
+  <script>
+    // 配置信息
+    const cfg = { paths: {} }
+    // 缓存已加载模块
+    const defMap = {}
+
+    define = (name, deps, callback) => {
+      defMap[name] = callback()
+    }
+    define.amd = {}
+    // 全局 require 方法
+    req = require = (deps, callback) => {
+      let depsCount = deps.length
+      const exports = []
+      deps.forEach((name, i) => {
+        const url = cfg.paths[name]
+        // 依赖加载
+        req.lode(name, url, () => {
+          depsCount--
+          exports[i] = defMap[name]
+          if (depsCount <= 0) {
+            callback(...exports)
+          }
+        })
+      })
+    }
+    // 扩展配置
+    req.config = config => {
+      Object.assign(cfg, config)
+    }
+    // 模块加载
+    req.lode = (name, url, callback) => {
+      const head = document.getElementsByTagName('head')[0]
+      const node = document.createElement('script')
+      node.type = 'text/javascript'
+      node.async = true // 添加了async属性
+      node.onload = () => {
+        console.log(defMap)
+        callback()
+      }
+      node.src = url
+      head.appendChild(node)
+      return node
+    }
+  </script>
   <script>
     require.config({
       paths: {
@@ -16,10 +61,19 @@
       }
     })
 
-    require(['module'], function (m){
-      console.log(
-        m.add(1, 9)
-      )
+    // require(['module'], function (m){
+    //   console.log(
+    //     m.add(1, 9)
+    //   )
+    // })
+    require.config({
+      paths: {
+        jquery: 'https://code.jquery.com/jquery-3.4.1.js'
+      }
+    })
+
+    require(['jquery'], function ($){
+      $('#app').html('loaded')
     })
   </script>
 </body>

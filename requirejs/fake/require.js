@@ -37,7 +37,7 @@ const loadModule =  (name, url) => {
 }
 
 const onScriptLoad = evt => {
-  const node = evt.currentTarget || evt.srcElement
+  const node = evt.currentTarget
   node.removeEventListener('load', onScriptLoad, false)
 
   const name = node.getAttribute('data-module')
@@ -46,9 +46,9 @@ const onScriptLoad = evt => {
   mod.init(def.deps, def.callback)
 }
 
-
 class Module {
   constructor(name) {
+    this.defined = false
     this.name = name
     this.depCount = 0
     this.depMaps = []
@@ -83,6 +83,8 @@ class Module {
     let exports = this.exports
     if (this.depCount < 1 && !this.defined) { //如果依赖数小于1，表示依赖已经全部加载完毕
       exports = this.callback.apply(null, this.depExports)
+      this.exports = exports
+      this.defined = true
     }
     this.emit('defined', exports); //激活defined事件
   }
