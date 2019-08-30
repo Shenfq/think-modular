@@ -48,12 +48,10 @@ const onScriptLoad = evt => {
 
 class Module {
   constructor(name) {
-    this.defined = false
     this.name = name
     this.depCount = 0
-    this.depMaps = []
     this.depExports = []
-    this.events = {}
+    this.definedFn = () => {}
   }
   init(deps, callback) {
     this.deps = deps
@@ -68,41 +66,23 @@ class Module {
     this.deps.forEach((name, i) => {
       const url = nameToUrl(name)
       const mod = getModule(name)
-      this.depMaps[i] = mod
       this.depCount++
       // 绑定事件
-      mod.on('defined', exports => {
+      mod.definedFn = exports => {
         this.depCount--
         this.depExports[i] = exports
         this.check()
-      })
+      }
       loadModule(name, url)
     });
   }
   check() {
     let exports = this.exports
-    if (this.depCount < 1 && !this.defined) { //如果依赖数小于1，表示依赖已经全部加载完毕
+    if (this.depCount < 1) { //如果依赖数小于1，表示依赖已经全部加载完毕
       exports = this.callback.apply(null, this.depExports)
       this.exports = exports
-      this.defined = true
+      this.definedFn(exports) //激活defined事件
     }
-    this.emit('defined', exports); //激活defined事件
-  }
-  on(name, cb) {
-    let cbs = this.events[name]
-    if (!cbs) {
-      cbs = this.events[name] = []
-    }
-    cbs.push(cb)
-  }
-  emit(name, ...args) {
-    const cbs = this.events[name]
-    if (!Array.isArray(cbs)) {
-      return
-    }
-    cbs.forEach(cb => {
-      cb(...args)
-    })
   }
 }
 
