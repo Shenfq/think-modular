@@ -112,11 +112,8 @@ seajs.config = (config) => {
 const STATUS = {
   FETCHING: 1,
   SAVED: 2,
-  LOADING: 3,
-  LOADED: 4,
-  EXECUTING: 5,
-  EXECUTED: 6,
-  ERROR: 7
+  LOADED: 3,
+  EXECUTED: 4
 }
 const parseDependencies = (code) => {
   const REQUIRE_RE = /"(?:\\"|[^"])*"|'(?:\\'|[^'])*'|\/\*[\S\s]*?\*\/|\/(?:\\\/|[^/\r\n])+\/(?=[^\/])|\/\/.*|\.\s*require|(?:^|[^$])\brequire\s*\(\s*(["'])(.+?)\1\s*\)/g
@@ -142,7 +139,6 @@ class Module {
     this._entry   = []
   }
   load() {
-    this.status = STATUS.LOADING
     const uris = this.resolve()
     const deps = this.deps
     uris.forEach((uri, i) => {
@@ -170,6 +166,7 @@ class Module {
     })
   }
   onload() {
+    this.status = STATUS.LOADED
     this._entry.forEach(entry => {
       if (--entry.remain === 0) {
         entry.callback()
@@ -208,13 +205,12 @@ class Module {
     })
   }
   fetch() {
+    mod.status = STATUS.FETCHING
     request(this.uri, () => {
       this.load()
     })
   }
   exec() {
-    this.status = STATUS.EXECUTING
-
     if (this._entry && !this._entry.length) {
       delete this._entry
     }
