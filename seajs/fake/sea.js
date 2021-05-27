@@ -205,7 +205,7 @@ class Module {
     })
   }
   fetch() {
-    mod.status = STATUS.FETCHING
+    this.status = STATUS.FETCHING
     request(this.uri, () => {
       this.load()
     })
